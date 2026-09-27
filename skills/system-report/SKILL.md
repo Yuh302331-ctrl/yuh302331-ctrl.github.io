@@ -19,6 +19,7 @@ description: 对 Windows 电脑进行系统体检并生成体检报告，采集 
 
 - 操作系统：Windows 10 / 11
 - Python：3.7+（仅标准库，无需 `pip install` 任何包）
+- 图形界面需要 tkinter（python.org 官方安装包默认自带）；缺失时 `--gui` 会提示并可用文本模式
 
 ## 使用方法
 
@@ -28,9 +29,19 @@ python system_report.py --json         # 输出 JSON 格式（便于程序解析
 python system_report.py --save         # 报告同时保存到本地文件
 python system_report.py --json --save  # JSON 格式并保存
 python system_report.py --sample 1.5   # 自定义 CPU 采样时长（秒，默认 0.6）
+python system_report.py --gui          # 打开图形界面（深色仪表盘 + 百分比圆环）
 ```
 
 脚本路径：`skills/system-report/scripts/system_report.py`
+
+## 图形界面
+
+`--gui` 打开一个深色仪表盘窗口，用百分比圆环展示 CPU / 内存 / 电池 / 各磁盘使用率：
+
+- 圆环颜色随危险程度变化：绿（<75%）、黄（75-90%）、红（>=90%）；电池反向（低电量才变红）
+- 圆环中心显示百分比，环内显示标签，环下显示实际用量（如 `7.3 GB / 7.9 GB`）
+- 右上角「重新检测」按钮可重新采样，无需关窗口
+- 未就绪的磁盘/无电池的台式机会显示 `--` 并给出说明文字
 
 ## 输出字段（JSON）
 
@@ -54,3 +65,4 @@ python system_report.py --sample 1.5   # 自定义 CPU 采样时长（秒，默�
 - 未插介质的光驱 / 空读卡器会以"设备未就绪或无介质（已跳过）"列出，不会卡住或弹窗。
 - 控制台中文编码已自动处理；若仍显示乱码，可手动执行 `chcp 65001`。
 - 脚本仅使用 Windows API 与注册表读取，不依赖 WMI，因此在 WMI 被禁用或受限的环境下同样可用。
+- 配套启动脚本：`run.cmd`（文本报告）、`run-gui.cmd`（图形界面），双击即可运行。
