@@ -10,10 +10,10 @@ description: 对 Windows 电脑进行系统体检并生成体检报告，采集 
 - 系统信息：主机名、操作系统版本、架构、CPU 型号、Python 版本
 - CPU：当前使用率、逻辑核心数
 - 内存：总容量、已使用、可用、使用率
-- 磁盘：每个盘符的容量、已用、可用、使用率
-- 电源/电池：电源状态、剩余电量（笔记本）
+- 磁盘：每个盘符的类型、容量、已用、可用、使用率
+- 电源/电池：电源状态、剩余电量、剩余续航（笔记本）
 - 运行时长：系统已运行时间
-- 健康建议：根据指标给出内存/磁盘/CPU 的预警与建议
+- 健康建议：根据指标给出内存/磁盘/CPU/续航的预警与建议
 
 ## 环境要求
 
@@ -27,9 +27,19 @@ python system_report.py                # 输出中文体检报告
 python system_report.py --json         # 输出 JSON 格式（便于程序解析）
 python system_report.py --save         # 报告同时保存到本地文件
 python system_report.py --json --save  # JSON 格式并保存
+python system_report.py --sample 1.5   # 自定义 CPU 采样时长（秒，默认 0.6）
 ```
 
 脚本路径：`skills/system-report/scripts/system_report.py`
+
+## 输出字段（JSON）
+
+- `system`：`hostname` / `os` / `os_version` / `arch` / `processor` / `python`
+- `cpu`：`usage_percent` / `sample_seconds` / `cores_physical` / `cores_logical`
+- `memory`：`total_readable` / `used_readable` / `available_readable` / `usage_percent` 及对应字节数字段
+- `disks`：每个盘符的 `drive` / `drive_type` / `ready` / `total_readable` / `used_readable` / `free_readable` / `usage_percent`
+- `battery`：`ac_status` / `battery_present` / `battery_percent` / `seconds_left`（使用电池时）
+- `uptime`：`days` / `hours` / `minutes` / `total_seconds` / `readable`
 
 ## 使用建议
 
@@ -39,6 +49,8 @@ python system_report.py --json --save  # JSON 格式并保存
 
 ## 注意事项
 
-- 输出为当前时刻快照，CPU 使用率是约 0.6 秒采样估算值，仅供参考。
+- 输出为当前时刻快照，CPU 使用率是采样估算值（默认 0.6 秒），仅供参考；需要更稳定的数值可加大 `--sample`。
 - 台式机通常无电池，报告中会注明"未检测到电池"。
-- 若控制台中文显示乱码，请先执行 `chcp 65001` 切换为 UTF-8 代码页。
+- 未插介质的光驱 / 空读卡器会以"设备未就绪或无介质（已跳过）"列出，不会卡住或弹窗。
+- 控制台中文编码已自动处理；若仍显示乱码，可手动执行 `chcp 65001`。
+- 脚本仅使用 Windows API 与注册表读取，不依赖 WMI，因此在 WMI 被禁用或受限的环境下同样可用。
