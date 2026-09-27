@@ -31,7 +31,7 @@ a{color:var(--neon);text-decoration:none}
 ::-webkit-scrollbar-thumb:hover{background:#1d5c38}
 
 /* ---------- 背景层 ---------- */
-#matrix{position:fixed;inset:0;z-index:0;opacity:.42;pointer-events:none}
+#matrix{position:fixed;inset:0;z-index:0;opacity:.5;pointer-events:none}
 .bg-grid{position:fixed;inset:-10%;z-index:0;pointer-events:none;
   background-image:linear-gradient(rgba(57,255,20,.055) 1px,transparent 1px),
                    linear-gradient(90deg,rgba(57,255,20,.055) 1px,transparent 1px);
@@ -114,7 +114,7 @@ h1 .thin{font-weight:300;opacity:.85}
 .typed-line .prompt{color:var(--neon);margin-right:8px}
 .caret{color:var(--neon);animation:blink 1.05s step-end infinite}
 @keyframes blink{50%{opacity:0}}
-.hero-desc{max-width:520px;margin:0 auto 30px;color:#a9c4b4;font-size:15px}
+.hero-desc{max-width:566px;margin:0 auto 30px;color:#bad3c6;font-size:15px}
 .cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .btn{font-size:14px;padding:11px 24px;border-radius:11px;border:1px solid var(--line);
   color:#d6ffe2;background:rgba(255,255,255,.02);transition:.22s;font-family:var(--mono)}
@@ -125,7 +125,7 @@ h1 .thin{font-weight:300;opacity:.85}
   box-shadow:0 0 26px rgba(57,255,20,.18)}
 .btn-primary:hover{box-shadow:0 12px 32px rgba(57,255,20,.3)}
 .scroll-hint{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
-  font-size:12px;font-family:var(--mono);color:#5e8a72;letter-spacing:1px}
+  font-size:12px;font-family:var(--mono);color:#86b69d;letter-spacing:1px}
 .scroll-hint span{display:block;font-size:16px;animation:bob 1.7s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(6px)}}
 
@@ -139,7 +139,7 @@ h1 .thin{font-weight:300;opacity:.85}
   box-shadow:0 14px 34px rgba(57,255,20,.12)}
 .stat b{display:block;font-family:var(--mono);font-size:34px;line-height:1.15;
   color:var(--neon);text-shadow:0 0 20px rgba(57,255,20,.45)}
-.stat span{font-size:12.5px;color:var(--muted);letter-spacing:1px}
+.stat span{font-size:12.5px;color:#96b6a4;letter-spacing:1px}
 
 /* ---------- 终端 ---------- */
 .term{border-radius:14px;overflow:hidden;border:1px solid rgba(57,255,20,.24);
@@ -171,7 +171,7 @@ h1 .thin{font-weight:300;opacity:.85}
   font-size:17px;background:rgba(57,255,20,.1);border:1px solid var(--line)}
 .card-name{font-family:var(--mono);font-size:15px;color:#e6fff0;font-weight:600;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-desc{margin:0;font-size:13.5px;color:#9dbdab;line-height:1.7;flex:1;
+.card-desc{margin:0;font-size:13.5px;color:#accdbb;line-height:1.7;flex:1;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .card-meta{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:12px;color:#6f9c82}
 .card-meta .lang::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;
@@ -192,17 +192,17 @@ h1 .thin{font-weight:300;opacity:.85}
 .timeline{position:relative;padding-left:26px}
 .timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;
   background:linear-gradient(180deg,var(--neon),rgba(57,255,20,.05))}
-.tl-item{position:relative;padding:0 0 22px 4px}
+.tl-item{position:relative;padding:0 0 24px 4px}
 .tl-item::before{content:"";position:absolute;left:-25px;top:9px;width:9px;height:9px;
   border-radius:50%;background:var(--bg);border:1.5px solid var(--neon);box-shadow:0 0 10px rgba(57,255,20,.6)}
 .tl-when{font-family:var(--mono);font-size:12px;color:var(--neon);letter-spacing:1px}
-.tl-what{margin:2px 0 0;font-size:14px;color:#b6d4c2}
+.tl-what{margin:2px 0 0;font-size:14.5px;color:#d3ebdd}
 
 /* ---------- 联系 ---------- */
 .contact{padding:34px 28px;border-radius:var(--radius);text-align:center;
   border:1px solid rgba(57,255,20,.3);background:var(--panel);backdrop-filter:blur(8px);
   box-shadow:0 0 60px rgba(57,255,20,.07) inset}
-.contact p{margin:0 0 20px;color:#a9c4b4;font-size:14.5px}
+.contact p{margin:0 0 20px;color:#c4ddcd;font-size:14.5px}
 .contact-links{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .chip{font-family:var(--mono);font-size:13px;padding:9px 18px;border-radius:999px;
   border:1px solid var(--line);color:#c8ffd6;transition:.22s}
