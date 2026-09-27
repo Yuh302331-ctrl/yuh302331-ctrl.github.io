@@ -140,6 +140,9 @@ h1 .thin{font-weight:300;opacity:.85}
 .stat b{display:block;font-family:var(--mono);font-size:34px;line-height:1.15;
   color:var(--neon);text-shadow:0 0 20px rgba(57,255,20,.45)}
 .stat span{font-size:12.5px;color:#96b6a4;letter-spacing:1px}
+.stat-tip{grid-column:1/-1;margin:4px 0 0;padding:8px 12px;text-align:center;
+  font-size:12px;font-family:var(--mono);color:#d8b25a;border-radius:10px;
+  border:1px dashed rgba(216,178,90,.32);background:rgba(216,178,90,.07)}
 
 /* ---------- 终端 ---------- */
 .term{border-radius:14px;overflow:hidden;border:1px solid rgba(57,255,20,.24);
@@ -216,13 +219,44 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
 .totop.show{opacity:1;pointer-events:auto}
 .totop:hover{border-color:rgba(57,255,20,.6);box-shadow:0 0 22px rgba(57,255,20,.3);transform:translateY(-3px)}
 
+.burger{display:none;width:40px;height:40px;margin-left:8px;padding:0;border-radius:11px;
+  border:1px solid var(--line);background:rgba(6,14,10,.75);cursor:pointer;
+  align-items:center;justify-content:center;flex-direction:column;gap:4px;transition:border-color .22s,box-shadow .22s}
+.burger:hover{border-color:rgba(57,255,20,.55);box-shadow:0 0 16px rgba(57,255,20,.16)}
+.burger span{display:block;width:17px;height:1.6px;border-radius:2px;background:#9fe6b6;
+  transition:transform .28s cubic-bezier(.2,.7,.3,1),opacity .18s}
+.burger.open span:nth-child(1){transform:translateY(5.6px) rotate(45deg)}
+.burger.open span:nth-child(2){opacity:0}
+.burger.open span:nth-child(3){transform:translateY(-5.6px) rotate(-45deg)}
+
 @media (max-width:760px){
-  .nav-links{display:none}
-  .nav{padding:12px 18px}
-  .nav-gh{margin-left:auto}
+  .nav{padding:12px 18px;gap:10px}
+  .burger{display:flex}
+  .nav-links{position:absolute;top:calc(100% + 8px);left:14px;right:14px;margin:0;
+    display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:14px;
+    border:1px solid var(--line);background:rgba(5,12,9,.96);backdrop-filter:blur(14px);
+    box-shadow:0 20px 46px rgba(0,0,0,.5);opacity:0;visibility:hidden;
+    transform:translateY(-8px);transition:opacity .24s,transform .24s,visibility .24s}
+  .nav-links.open{opacity:1;visibility:visible;transform:none}
+  .nav-links a{padding:11px 14px;border-radius:10px;font-size:15px}
   .stats{grid-template-columns:repeat(2,1fr)}
   .section{padding:56px 0 8px}
   .hero{min-height:92vh}
+}
+@media (max-width:480px){
+  .wrap{padding:0 16px}
+  .stats{grid-template-columns:1fr;gap:10px}
+  .stat{padding:15px 14px}
+  .stat b{font-size:27px}
+  .hero{padding-top:96px}
+  .hero-desc{font-size:13.5px}
+  .btn{padding:10px 18px;font-size:13px}
+  .sec-title{font-size:15px}
+  .term-body{font-size:11.5px;line-height:1.85;padding:14px;min-height:250px;max-height:330px}
+  .term-title{font-size:11px}
+  .card-name{font-size:14px}
+  .tl-what{font-size:13.5px}
+  .contact{padding:26px 18px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
@@ -231,6 +265,14 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
   html{scroll-behavior:auto}
 }
 </style>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Person","name":"Yuh302331-ctrl",
+"alternateName":"yuh302331-ctrl","url":"https://yuh302331-ctrl.github.io/",
+"image":"https://yuh302331-ctrl.github.io/preview.png",
+"description":"PowerShell 与自动化脚本爱好者，把想法写成能跑起来的小工具。",
+"knowsAbout":["PowerShell","Git","GitHub","自动化脚本","终端美化","静态站点"],
+"sameAs":["https://github.com/Yuh302331-ctrl"]}
+</script>
 </head>
 <body>
 <div class="progress" id="progress"></div>
@@ -241,7 +283,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
 
 <nav class="nav" id="nav">
   <a class="brand" href="#top"><span class="dot"></span>yuh302331-ctrl</a>
-  <div class="nav-links">
+  <div class="nav-links" id="navLinks">
     <a href="#about">关于</a>
     <a href="#projects">项目</a>
     <a href="#stack">技能</a>
@@ -249,6 +291,10 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     <a href="#contact">联系</a>
   </div>
   <a class="nav-gh" href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">GitHub ↗</a>
+  <button class="burger" id="burger" type="button" aria-label="打开导航菜单"
+          aria-expanded="false" aria-controls="navLinks">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
 
 <main>
@@ -274,6 +320,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     <div class="stat reveal" style="--d:90ms"><b id="s-stars">—</b><span>获得 Star</span></div>
     <div class="stat reveal" style="--d:180ms"><b id="s-followers">—</b><span>关注者</span></div>
     <div class="stat reveal" style="--d:270ms"><b id="s-days">—</b><span>折腾天数</span></div>
+    <p class="stat-tip" id="statTip" hidden>GitHub 数据暂时没拉到（可能被限流或断网）· 刷新一下即可恢复</p>
   </section>
 
   <section class="section wrap" id="about">
@@ -296,6 +343,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
         <div class="card-meta"><span class="lang">PowerShell</span><span class="card-link">查看 →</span></div>
       </a>
     </div>
+    <p class="stat-tip" id="projTip" hidden>项目列表没能从 GitHub 拉取，上面是默认内容</p>
   </section>
 
   <section class="section wrap" id="stack">
@@ -337,7 +385,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
       <div class="contact-links">
         <a class="chip" href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">GitHub</a>
         <a class="chip" href="https://github.com/Yuh302331-ctrl/matrix-rain" target="_blank" rel="noopener">matrix-rain</a>
-        <a class="chip" href="mailto:Yuh302331-ctrl@users.noreply.github.com">Email</a>
+        <a class="chip" href="https://github.com/Yuh302331-ctrl/yuh302331-ctrl.github.io/issues/new" target="_blank" rel="noopener">留言 / 建议</a>
       </div>
     </div>
   </section>
@@ -358,6 +406,9 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     var ctx = cv.getContext('2d');
     var fs = 16, cols = 0, drops = [], spd = [];
     var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=<>/'.split('');
+    var FRAME = 62;
+    var last = 0, rafId = 0, rzTimer = 0;
+
     var resize = function () {
       cv.width = window.innerWidth;
       cv.height = window.innerHeight;
@@ -369,8 +420,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
       }
       ctx.font = fs + 'px Consolas, monospace';
     };
-    resize();
-    window.addEventListener('resize', resize);
+
     var draw = function () {
       ctx.fillStyle = 'rgba(4, 7, 10, 0.10)';
       ctx.fillRect(0, 0, cv.width, cv.height);
@@ -382,27 +432,68 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
         if (drops[i] * fs > cv.height && Math.random() > 0.975) drops[i] = -Math.random() * 24;
       }
     };
-    setInterval(draw, 62);
+
+    var loop = function (t) {
+      rafId = requestAnimationFrame(loop);
+      if (t - last < FRAME) return;
+      last = t;
+      draw();
+    };
+    var start = function () {
+      if (rafId || reduce || document.hidden) return;
+      last = 0;
+      rafId = requestAnimationFrame(loop);
+    };
+    var stop = function () {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    };
+
+    resize();
+    start();
+
+    window.addEventListener('resize', function () {
+      clearTimeout(rzTimer);
+      rzTimer = setTimeout(resize, 150);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+    window.addEventListener('pagehide', stop);
   }
 
   /* ---------- 打字机 ---------- */
   var lines = ['折腾终端的小工具爱好者', 'PowerShell + Git 玩家', 'Codex 常驻用户', '把想法写成能跑的东西'];
   var tEl = document.getElementById('typed');
   if (tEl) {
-    var li = 0, ci = 0, del = false;
+    var li = 0, ci = 0, del = false, twTimer = 0, twPaused = false;
     var type = function () {
+      twTimer = 0;
+      if (twPaused) return;
       var t = lines[li];
-      if (reduce) { tEl.textContent = t; return; }
       if (!del) {
         ci++; tEl.textContent = t.slice(0, ci);
-        if (ci === t.length) { del = true; return setTimeout(type, 1500); }
+        if (ci === t.length) { del = true; twTimer = setTimeout(type, 1500); return; }
       } else {
         ci--; tEl.textContent = t.slice(0, ci);
         if (ci === 0) { del = false; li = (li + 1) % lines.length; }
       }
-      setTimeout(type, del ? 38 : 92);
+      twTimer = setTimeout(type, del ? 38 : 92);
     };
-    type();
+    if (reduce) {
+      tEl.textContent = lines[0];
+    } else {
+      type();
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          twPaused = true;
+          clearTimeout(twTimer); twTimer = 0;
+        } else if (twPaused) {
+          twPaused = false;
+          if (!twTimer) twTimer = setTimeout(type, 420);
+        }
+      });
+    }
   }
 
   /* ---------- 滚动进度 / 导航 / 回顶 ---------- */
@@ -420,11 +511,47 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
   onScroll();
   totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
 
+  /* ---------- 移动端汉堡菜单 ---------- */
+  var burger = document.getElementById('burger');
+  var navLinks = document.getElementById('navLinks');
+  if (burger && navLinks) {
+    var setMenu = function (open) {
+      burger.classList.toggle('open', open);
+      navLinks.classList.toggle('open', open);
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      burger.setAttribute('aria-label', open ? '关闭导航菜单' : '打开导航菜单');
+    };
+    burger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMenu(!navLinks.classList.contains('open'));
+    });
+    Array.prototype.forEach.call(navLinks.querySelectorAll('a'), function (a) {
+      a.addEventListener('click', function () { setMenu(false); });
+    });
+    document.addEventListener('click', function (e) {
+      if (!navLinks.classList.contains('open')) return;
+      if (navLinks.contains(e.target) || burger.contains(e.target)) return;
+      setMenu(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') setMenu(false);
+    });
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 760) setMenu(false);
+    });
+  }
+
   /* ---------- 光斑跟随 ---------- */
-  window.addEventListener('pointermove', function (e) {
+  var spX = 0, spY = 0, spRaf = 0;
+  var applySpot = function () {
+    spRaf = 0;
     var s = document.documentElement.style;
-    s.setProperty('--mx', e.clientX + 'px');
-    s.setProperty('--my', e.clientY + 'px');
+    s.setProperty('--mx', spX + 'px');
+    s.setProperty('--my', spY + 'px');
+  };
+  window.addEventListener('pointermove', function (e) {
+    spX = e.clientX; spY = e.clientY;
+    if (!spRaf) spRaf = requestAnimationFrame(applySpot);
   }, { passive: true });
 
   /* ---------- 滚动显现 ---------- */
@@ -470,41 +597,90 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     requestAnimationFrame(step);
   };
   var USER = 'Yuh302331-ctrl';
-  fetch('https://api.github.com/users/' + USER)
-    .then(function (r) { return r.json(); })
-    .then(function (u) {
-      if (!u || u.message) return;
-      countUp(document.getElementById('s-repos'), u.public_repos || 0);
-      countUp(document.getElementById('s-followers'), u.followers || 0);
-      var d = Math.max(1, Math.round((Date.now() - new Date(u.created_at)) / 86400000));
-      countUp(document.getElementById('s-days'), d);
-    })
-    .catch(function () {});
+  var CACHE_KEY = 'gh-cache-v1';
+  var CACHE_TTL = 5 * 60 * 1000;
+
+  var readCache = function (key) {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      var hit = (JSON.parse(raw) || {})[key];
+      if (!hit || Date.now() - hit.t > CACHE_TTL) return null;
+      return hit.d;
+    } catch (e) { return null; }
+  };
+  var writeCache = function (key, data) {
+    try {
+      var box = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') || {};
+      box[key] = { t: Date.now(), d: data };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(box));
+    } catch (e) {}
+  };
+  var fetchJSON = function (url) {
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    var done = function () { clearTimeout(timer); };
+    return fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+      done();
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }, function (err) { done(); throw err; });
+  };
+  var showTip = function (id) {
+    var tip = document.getElementById(id);
+    if (tip) tip.hidden = false;
+  };
+  var paintUser = function (u) {
+    if (!u || u.message) { showTip('statTip'); return; }
+    countUp(document.getElementById('s-repos'), u.public_repos || 0);
+    countUp(document.getElementById('s-followers'), u.followers || 0);
+    var d = Math.max(1, Math.round((Date.now() - new Date(u.created_at)) / 86400000));
+    countUp(document.getElementById('s-days'), d);
+  };
+
+  var cachedUser = readCache('user');
+  if (cachedUser) {
+    paintUser(cachedUser);
+  } else {
+    fetchJSON('https://api.github.com/users/' + USER)
+      .then(function (u) { writeCache('user', u); paintUser(u); })
+      .catch(function () { paintUser(null); });
+  }
 
   /* ---------- 项目卡片自动生成 ---------- */
   var ICONS = { PowerShell: '⚡', JavaScript: '🟨', HTML: '🌐', CSS: '🎨', Python: '🐍', TypeScript: '🔷' };
   var grid = document.getElementById('projGrid');
+  var tiltTo = function (c, cx, cy) {
+    var r = c.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var px = (cx - r.left) / r.width - 0.5;
+    var py = (cy - r.top) / r.height - 0.5;
+    c.style.transform = 'perspective(820px) rotateY(' + (px * 7).toFixed(2) +
+      'deg) rotateX(' + (-py * 7).toFixed(2) + 'deg) translateY(-4px)';
+  };
   var bindTilt = function (scope) {
     if (reduce) return;
     Array.prototype.forEach.call(scope.querySelectorAll('[data-tilt]'), function (c) {
-      c.addEventListener('mousemove', function (e) {
-        var r = c.getBoundingClientRect();
-        var px = (e.clientX - r.left) / r.width - 0.5;
-        var py = (e.clientY - r.top) / r.height - 0.5;
-        c.style.transform = 'perspective(820px) rotateY(' + (px * 7).toFixed(2) +
-          'deg) rotateX(' + (-py * 7).toFixed(2) + 'deg) translateY(-4px)';
-      });
+      c.addEventListener('mousemove', function (e) { tiltTo(c, e.clientX, e.clientY); });
       c.addEventListener('mouseleave', function () { c.style.transform = ''; });
+      var touching = false;
+      c.addEventListener('touchstart', function () { touching = true; }, { passive: true });
+      c.addEventListener('touchmove', function (e) {
+        if (!touching || !e.touches.length) return;
+        tiltTo(c, e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      c.addEventListener('touchend', function () {
+        touching = false;
+        setTimeout(function () { c.style.transform = ''; }, 260);
+      }, { passive: true });
     });
   };
-  fetch('https://api.github.com/users/' + USER + '/repos?per_page=100&sort=pushed')
-    .then(function (r) { return r.json(); })
-    .then(function (rs) {
-      if (!Array.isArray(rs) || !rs.length || !grid) return;
-      var stars = rs.reduce(function (a, r) { return a + (r.stargazers_count || 0); }, 0);
-      countUp(document.getElementById('s-stars'), stars);
-      rs.sort(function (a, b) { return new Date(b.pushed_at) - new Date(a.pushed_at); });
-      grid.innerHTML = rs.slice(0, 6).map(function (r, i) {
+  var paintRepos = function (rs) {
+    if (!Array.isArray(rs) || !rs.length || !grid) return;
+    var stars = rs.reduce(function (a, r) { return a + (r.stargazers_count || 0); }, 0);
+    countUp(document.getElementById('s-stars'), stars);
+    rs.sort(function (a, b) { return new Date(b.pushed_at) - new Date(a.pushed_at); });
+    grid.innerHTML = rs.slice(0, 6).map(function (r, i) {
         var name = String(r.name).replace(/[<>&"]/g, '');
         var desc = String(r.description || '暂时还没有描述。').replace(/[<>&"]/g, '');
         var lang = String(r.language || 'Code').replace(/[<>&"]/g, '');
@@ -517,10 +693,18 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
           '<p class="card-desc">' + desc + '</p>' +
           '<div class="card-meta"><span class="lang">' + lang + '</span>' + star +
           '<span class="card-link">查看 →</span></div></a>';
-      }).join('');
-      bindTilt(grid);
-    })
-    .catch(function () {});
+    }).join('');
+    bindTilt(grid);
+  };
+
+  var cachedRepos = readCache('repos');
+  if (cachedRepos) {
+    paintRepos(cachedRepos);
+  } else {
+    fetchJSON('https://api.github.com/users/' + USER + '/repos?per_page=100&sort=pushed')
+      .then(function (rs) { writeCache('repos', rs); paintRepos(rs); })
+      .catch(function () { showTip('projTip'); });
+  }
   bindTilt(document);
 
   /* ---------- 终端演出 ---------- */
@@ -535,7 +719,8 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     ['out', 'PowerShell, Git, GitHub, 终端美化, 自动化脚本, Codex'],
     ['cmd', '.\\contact.ps1'],
     ['out', 'GitHub   ->  github.com/Yuh302331-ctrl'],
-    ['out', 'Mail     ->  Yuh302331-ctrl@users.noreply.github.com']
+    ['out', 'Contact  ->  github.com/Yuh302331-ctrl'],
+    ['out', 'Issue    ->  提交留言 / 建议']
   ];
   var renderAll = function () {
     term.innerHTML = SCRIPT.map(function (l) {
