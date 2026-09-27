@@ -8,8 +8,22 @@
 <meta property="og:title" content="Yuh302331-ctrl">
 <meta property="og:description" content="PowerShell + Git 玩家，把想法写成能跑的东西。">
 <meta property="og:type" content="profile">
-<meta property="og:image" content="https://yuh302331-ctrl.github.io/preview.png">
+<meta property="og:image" content="https://yuh302331-ctrl.github.io/preview.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://yuh302331-ctrl.github.io/">
+<meta property="og:site_name" content="Yuh302331-ctrl">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Yuh302331-ctrl">
+<meta name="twitter:description" content="PowerShell + Git 玩家，把想法写成能跑的东西。">
+<meta name="twitter:image" content="https://yuh302331-ctrl.github.io/preview.jpg">
+<meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#04070a">
+<link rel="canonical" href="https://yuh302331-ctrl.github.io/">
+<link rel="me" href="https://github.com/Yuh302331-ctrl">
+<link rel="preconnect" href="https://api.github.com" crossorigin>
+<link rel="dns-prefetch" href="https://api.github.com">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050a08'/%3E%3Ctext x='32' y='45' font-size='38' font-family='monospace' font-weight='bold' fill='%2339ff14' text-anchor='middle'%3EY%3C/text%3E%3C/svg%3E">
 <style>
 :root{
@@ -24,6 +38,8 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
   line-height:1.75;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 a{color:var(--neon);text-decoration:none}
+:focus-visible{outline:2px solid var(--neon);outline-offset:3px;border-radius:6px}
+:focus:not(:focus-visible){outline:none}
 ::selection{background:rgba(57,255,20,.28)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:#050a08}
@@ -46,7 +62,8 @@ a{color:var(--neon);text-decoration:none}
   background:radial-gradient(ellipse 78% 72% at 50% 45%,transparent 58%,rgba(0,0,0,.30) 100%)}
 
 /* ---------- 顶部进度条 & 导航 ---------- */
-.progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;
+.progress{position:fixed;top:0;left:0;height:2px;width:100%;z-index:60;
+  transform:scaleX(0);transform-origin:0 50%;will-change:transform;
   background:linear-gradient(90deg,var(--neon),var(--neon2),var(--cyan));box-shadow:0 0 12px rgba(57,255,20,.7)}
 .nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:18px;
   padding:14px 26px;transition:background .3s,backdrop-filter .3s,border-color .3s;
@@ -268,7 +285,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Person","name":"Yuh302331-ctrl",
 "alternateName":"yuh302331-ctrl","url":"https://yuh302331-ctrl.github.io/",
-"image":"https://yuh302331-ctrl.github.io/preview.png",
+"image":"https://yuh302331-ctrl.github.io/preview.jpg",
 "description":"PowerShell 与自动化脚本爱好者，把想法写成能跑起来的小工具。",
 "knowsAbout":["PowerShell","Git","GitHub","自动化脚本","终端美化","静态站点"],
 "sameAs":["https://github.com/Yuh302331-ctrl"]}
@@ -409,9 +426,15 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     var FRAME = 62;
     var last = 0, rafId = 0, rzTimer = 0;
 
+    var pickFontSize = function (w) {
+      if (w > 2560) return 22;
+      if (w > 1920) return 18;
+      return 16;
+    };
     var resize = function () {
       cv.width = window.innerWidth;
       cv.height = window.innerHeight;
+      fs = pickFontSize(cv.width);
       cols = Math.ceil(cv.width / fs);
       drops = []; spd = [];
       for (var i = 0; i < cols; i++) {
@@ -500,15 +523,25 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
   var prog = document.getElementById('progress');
   var nav = document.getElementById('nav');
   var totop = document.getElementById('totop');
-  var onScroll = function () {
+  var scrollPending = false;
+  var applyScroll = function () {
+    scrollPending = false;
     var h = document.documentElement;
     var max = h.scrollHeight - h.clientHeight;
-    prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
-    nav.classList.toggle('scrolled', h.scrollTop > 40);
-    totop.classList.toggle('show', h.scrollTop > 600);
+    var top = h.scrollTop;
+    var ratio = max > 0 ? top / max : 0;
+    prog.style.transform = 'scaleX(' + ratio.toFixed(4) + ')';
+    var scrolled = top > 40, showTop = top > 600;
+    if (nav.classList.contains('scrolled') !== scrolled) nav.classList.toggle('scrolled', scrolled);
+    if (totop.classList.contains('show') !== showTop) totop.classList.toggle('show', showTop);
+  };
+  var onScroll = function () {
+    if (scrollPending) return;
+    scrollPending = true;
+    requestAnimationFrame(applyScroll);
   };
   window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
+  applyScroll();
   totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
 
   /* ---------- 移动端汉堡菜单 ---------- */
