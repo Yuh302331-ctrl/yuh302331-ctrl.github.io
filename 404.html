@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yuh302331-ctrl</title>
+<style>
+  :root {
+    --neon: #39ff14;
+    --green: #0f8a3c;
+    --dim: #7fbf8f;
+    --bg: #050807;
+    --card: rgba(10, 20, 14, 0.72);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: #dff5e6;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+  #matrix {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.55;
+  }
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 20px 32px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid rgba(57, 255, 20, 0.22);
+    border-radius: 18px;
+    padding: 32px 28px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.08), inset 0 0 60px rgba(15, 138, 60, 0.06);
+  }
+  header { text-align: center; }
+  .avatar {
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 36px;
+    font-weight: 700;
+    color: #04120a;
+    background: radial-gradient(circle at 30% 25%, #b6ffb0, var(--neon) 55%, #0a6b2e);
+    box-shadow: 0 0 28px rgba(57, 255, 20, 0.45);
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 16px rgba(57, 255, 20, 0.55);
+  }
+  .tagline {
+    margin: 0;
+    color: var(--dim);
+    font-family: Consolas, "Courier New", monospace;
+    min-height: 22px;
+    font-size: 15px;
+  }
+  .caret { color: var(--neon); animation: blink 1s step-end infinite; }
+  section { margin-top: 28px; }
+  h2 {
+    font-size: 15px;
+    letter-spacing: 3px;
+    color: var(--neon);
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(57, 255, 20, 0.25);
+  }
+  p { line-height: 1.85; color: #cfe9d8; margin: 0 0 8px; }
+  a { color: var(--neon); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .projects { display: grid; gap: 12px; }
+  .project {
+    display: block;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(57, 255, 20, 0.18);
+    background: rgba(57, 255, 20, 0.04);
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .project:hover {
+    transform: translateY(-3px);
+    border-color: rgba(57, 255, 20, 0.55);
+    box-shadow: 0 8px 26px rgba(57, 255, 20, 0.14);
+    text-decoration: none;
+  }
+  .project strong { display: block; color: #eafff0; margin-bottom: 4px; }
+  .project span { color: var(--dim); font-size: 13px; }
+  .tags { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
+  .tags li {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(57, 255, 20, 0.3);
+    color: #bff5cd;
+    background: rgba(57, 255, 20, 0.06);
+  }
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: #4f7f60;
+    font-size: 12px;
+    padding: 0 20px 36px;
+  }
+  .blink { animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (max-width: 520px) {
+    .card { padding: 24px 18px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+  <div class="card">
+    <header>
+      <div class="avatar">Y</div>
+      <h1>Yuh302331-ctrl</h1>
+      <p class="tagline"><span id="typed"></span><span class="caret">_</span></p>
+    </header>
+
+    <section>
+      <h2>关于我</h2>
+      <p>喜欢折腾终端和自动化的小工具，用 PowerShell 和 Git 做点好玩的东西。</p>
+      <p>最近在学写代码，目标是把自己的想法一个个变成能跑起来的项目。</p>
+    </section>
+
+    <section>
+      <h2>项目</h2>
+      <div class="projects">
+        <a class="project" href="https://github.com/Yuh302331-ctrl/matrix-rain" target="_blank" rel="noopener">
+          <strong>Matrix Rain</strong>
+          <span>Windows PowerShell 绿色矩阵雨终端动画，带高亮雨头和拖尾</span>
+        </a>
+      </div>
+    </section>
+
+    <section>
+      <h2>折腾过</h2>
+      <ul class="tags">
+        <li>Windows PowerShell</li>
+        <li>Git / GitHub</li>
+        <li>终端美化</li>
+        <li>Codex</li>
+        <li>自动化脚本</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>联系</h2>
+      <p>GitHub：<a href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">@Yuh302331-ctrl</a></p>
+      <p>邮箱：<a href="mailto:Yuh302331-ctrl@users.noreply.github.com">Yuh302331-ctrl@users.noreply.github.com</a></p>
+    </section>
+  </div>
+</div>
+<footer>© 2026 Yuh302331-ctrl · Powered by GitHub Pages</footer>
+
+<script>
+(function () {
+  var canvas = document.getElementById('matrix');
+  var ctx = canvas.getContext('2d');
+  var fs = 15;
+  var cols = 0;
+  var drops = [];
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=<>'.split('');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols = Math.floor(canvas.width / fs);
+    drops = [];
+    for (var i = 0; i < cols; i++) drops.push(Math.random() * -60);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function draw() {
+    ctx.fillStyle = 'rgba(5, 8, 7, 0.09)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fs + 'px Consolas, monospace';
+    for (var i = 0; i < cols; i++) {
+      var ch = chars[Math.floor(Math.random() * chars.length)];
+      var y = drops[i] * fs;
+      ctx.fillStyle = Math.random() > 0.975 ? '#c8ffc0' : '#0f8a3c';
+      ctx.fillText(ch, i * fs, y);
+      if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 65);
+
+  var lines = [
+    '折腾终端的小工具爱好者',
+    'PowerShell + Git 玩家',
+    'Codex 常驻用户',
+    '把想法写成能跑的东西'
+  ];
+  var el = document.getElementById('typed');
+  var li = 0, ci = 0, deleting = false;
+
+  function type() {
+    var text = lines[li];
+    if (!deleting) {
+      ci++;
+      el.textContent = text.slice(0, ci);
+      if (ci === text.length) { deleting = true; return setTimeout(type, 1600); }
+    } else {
+      ci--;
+      el.textContent = text.slice(0, ci);
+      if (ci === 0) { deleting = false; li = (li + 1) % lines.length; }
+    }
+    setTimeout(type, deleting ? 40 : 95);
+  }
+  type();
+})();
+</script>
+</body>
+</html>
