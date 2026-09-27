@@ -2,231 +2,595 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Yuh302331-ctrl</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yuh302331-ctrl · 折腾终端的人</title>
+<meta name="description" content="Yuh302331-ctrl 的个人主页 — PowerShell、Git、自动化小工具。">
+<meta property="og:title" content="Yuh302331-ctrl">
+<meta property="og:description" content="PowerShell + Git 玩家，把想法写成能跑的东西。">
+<meta property="og:type" content="profile">
+<meta property="og:image" content="https://yuh302331-ctrl.github.io/preview.png">
+<meta name="theme-color" content="#04070a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050a08'/%3E%3Ctext x='32' y='45' font-size='38' font-family='monospace' font-weight='bold' fill='%2339ff14' text-anchor='middle'%3EY%3C/text%3E%3C/svg%3E">
 <style>
-  :root {
-    --neon: #39ff14;
-    --green: #0f8a3c;
-    --dim: #7fbf8f;
-    --bg: #050807;
-    --card: rgba(10, 20, 14, 0.72);
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: #dff5e6;
-    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
-    overflow-x: hidden;
-  }
-  #matrix {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    opacity: 0.55;
-  }
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 48px 20px 32px;
-  }
-  .card {
-    background: var(--card);
-    border: 1px solid rgba(57, 255, 20, 0.22);
-    border-radius: 18px;
-    padding: 32px 28px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 0 40px rgba(57, 255, 20, 0.08), inset 0 0 60px rgba(15, 138, 60, 0.06);
-  }
-  header { text-align: center; }
-  .avatar {
-    width: 84px;
-    height: 84px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    font-size: 36px;
-    font-weight: 700;
-    color: #04120a;
-    background: radial-gradient(circle at 30% 25%, #b6ffb0, var(--neon) 55%, #0a6b2e);
-    box-shadow: 0 0 28px rgba(57, 255, 20, 0.45);
-  }
-  h1 {
-    margin: 0 0 8px;
-    font-size: 30px;
-    letter-spacing: 1px;
-    text-shadow: 0 0 16px rgba(57, 255, 20, 0.55);
-  }
-  .tagline {
-    margin: 0;
-    color: var(--dim);
-    font-family: Consolas, "Courier New", monospace;
-    min-height: 22px;
-    font-size: 15px;
-  }
-  .caret { color: var(--neon); animation: blink 1s step-end infinite; }
-  section { margin-top: 28px; }
-  h2 {
-    font-size: 15px;
-    letter-spacing: 3px;
-    color: var(--neon);
-    margin: 0 0 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px dashed rgba(57, 255, 20, 0.25);
-  }
-  p { line-height: 1.85; color: #cfe9d8; margin: 0 0 8px; }
-  a { color: var(--neon); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .projects { display: grid; gap: 12px; }
-  .project {
-    display: block;
-    padding: 14px 16px;
-    border-radius: 12px;
-    border: 1px solid rgba(57, 255, 20, 0.18);
-    background: rgba(57, 255, 20, 0.04);
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  }
-  .project:hover {
-    transform: translateY(-3px);
-    border-color: rgba(57, 255, 20, 0.55);
-    box-shadow: 0 8px 26px rgba(57, 255, 20, 0.14);
-    text-decoration: none;
-  }
-  .project strong { display: block; color: #eafff0; margin-bottom: 4px; }
-  .project span { color: var(--dim); font-size: 13px; }
-  .tags { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; }
-  .tags li {
-    font-size: 13px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(57, 255, 20, 0.3);
-    color: #bff5cd;
-    background: rgba(57, 255, 20, 0.06);
-  }
-  footer {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    color: #4f7f60;
-    font-size: 12px;
-    padding: 0 20px 36px;
-  }
-  .blink { animation: blink 1.1s step-end infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  @media (max-width: 520px) {
-    .card { padding: 24px 18px; }
-    h1 { font-size: 24px; }
-  }
+:root{
+  --bg:#04070a; --neon:#39ff14; --neon2:#00e5a0; --cyan:#22d3ee;
+  --text:#dff5e6; --muted:#7f9a89; --line:rgba(57,255,20,.16);
+  --panel:rgba(8,16,13,.70); --radius:18px;
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,"Courier New",monospace;
+  --sans:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+  line-height:1.75;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:var(--neon);text-decoration:none}
+::selection{background:rgba(57,255,20,.28)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#050a08}
+::-webkit-scrollbar-thumb{background:#123a24;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#1d5c38}
+
+/* ---------- 背景层 ---------- */
+#matrix{position:fixed;inset:0;z-index:0;opacity:.42;pointer-events:none}
+.bg-grid{position:fixed;inset:-10%;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(57,255,20,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(57,255,20,.055) 1px,transparent 1px);
+  background-size:54px 54px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 65% at 50% 0%,#000 20%,transparent 78%);
+  mask-image:radial-gradient(ellipse 90% 65% at 50% 0%,#000 20%,transparent 78%);
+  animation:drift 26s linear infinite}
+@keyframes drift{to{transform:translate3d(54px,54px,0)}}
+.spotlight{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(560px circle at var(--mx,50%) var(--my,10%),rgba(57,255,20,.075),transparent 62%)}
+.vignette{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 40%,transparent 45%,rgba(0,0,0,.65) 100%)}
+
+/* ---------- 顶部进度条 & 导航 ---------- */
+.progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:60;
+  background:linear-gradient(90deg,var(--neon),var(--neon2),var(--cyan));box-shadow:0 0 12px rgba(57,255,20,.7)}
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:18px;
+  padding:14px 26px;transition:background .3s,backdrop-filter .3s,border-color .3s;
+  border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(4,7,10,.82);backdrop-filter:blur(14px);border-bottom-color:var(--line)}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:14px;
+  color:#c8ffd6;letter-spacing:.5px;white-space:nowrap}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--neon);
+  box-shadow:0 0 10px var(--neon);animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35;transform:scale(.8)}}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-links a{font-size:13.5px;color:var(--muted);padding:7px 13px;border-radius:9px;
+  transition:color .2s,background .2s}
+.nav-links a:hover{color:#d6ffe2;background:rgba(57,255,20,.07)}
+.nav-links a.active{color:var(--neon);background:rgba(57,255,20,.11)}
+.nav-gh{font-size:13.5px;font-family:var(--mono);padding:7px 15px;border-radius:999px;
+  border:1px solid var(--line);color:#c8ffd6;transition:.2s;white-space:nowrap}
+.nav-gh:hover{border-color:rgba(57,255,20,.6);box-shadow:0 0 18px rgba(57,255,20,.2);color:var(--neon)}
+
+/* ---------- 通用 ---------- */
+main{position:relative;z-index:1}
+.wrap{max-width:940px;margin:0 auto;padding:0 24px}
+.section{padding:72px 0 12px}
+.sec-title{display:flex;align-items:baseline;gap:12px;font-size:17px;letter-spacing:2px;
+  margin:0 0 22px;color:#eafff1}
+.sec-title .num{font-family:var(--mono);font-size:12px;color:var(--neon);opacity:.85}
+.sec-title::after{content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,var(--line),transparent);margin-left:6px}
+.reveal{opacity:0;transform:translateY(26px);
+  transition:opacity .75s cubic-bezier(.2,.7,.3,1),transform .75s cubic-bezier(.2,.7,.3,1);
+  transition-delay:var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:110px 24px 60px}
+.avatar-wrap{position:relative;width:124px;height:124px;margin-bottom:26px}
+.avatar{position:absolute;inset:22px;border-radius:50%;display:grid;place-items:center;
+  font-family:var(--mono);font-size:40px;font-weight:700;color:#03130a;
+  background:radial-gradient(circle at 32% 26%,#d6ffd0,var(--neon) 52%,#0a6b2e);
+  box-shadow:0 0 42px rgba(57,255,20,.5),0 0 100px rgba(57,255,20,.18)}
+.ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(57,255,20,.42);
+  animation:spin 9s linear infinite}
+.ring::after{content:"";position:absolute;top:-3px;left:50%;width:6px;height:6px;border-radius:50%;
+  background:var(--neon);box-shadow:0 0 12px var(--neon);transform:translateX(-50%)}
+.ring2{inset:-12px;border-style:dashed;border-color:rgba(34,211,238,.28);
+  animation:spin 15s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-family:var(--mono);
+  color:#a9e8bd;border:1px solid var(--line);background:rgba(57,255,20,.05);
+  padding:5px 14px;border-radius:999px;margin-bottom:20px}
+.badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--neon2);
+  box-shadow:0 0 10px var(--neon2);animation:pulse 1.8s ease-in-out infinite}
+h1{margin:0 0 14px;font-size:clamp(38px,7.4vw,74px);line-height:1.05;letter-spacing:-1px;
+  font-weight:800;
+  background:linear-gradient(100deg,#f2fff6 0%,#a6ffb8 26%,var(--neon) 52%,var(--neon2) 76%,var(--cyan) 100%);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 26px rgba(57,255,20,.25));
+  animation:sheen 7s ease-in-out infinite}
+@keyframes sheen{50%{background-position:100% center}}
+h1 .thin{font-weight:300;opacity:.85}
+.typed-line{font-family:var(--mono);font-size:clamp(13px,2.3vw,16px);color:#9fd8b4;
+  min-height:26px;margin:0 0 18px;letter-spacing:.5px}
+.typed-line .prompt{color:var(--neon);margin-right:8px}
+.caret{color:var(--neon);animation:blink 1.05s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.hero-desc{max-width:520px;margin:0 auto 30px;color:#a9c4b4;font-size:15px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn{font-size:14px;padding:11px 24px;border-radius:11px;border:1px solid var(--line);
+  color:#d6ffe2;background:rgba(255,255,255,.02);transition:.22s;font-family:var(--mono)}
+.btn:hover{transform:translateY(-2px);border-color:rgba(57,255,20,.55);
+  box-shadow:0 10px 26px rgba(57,255,20,.15)}
+.btn-primary{background:linear-gradient(120deg,rgba(57,255,20,.18),rgba(0,229,160,.12));
+  border-color:rgba(57,255,20,.5);color:#e8ffee;
+  box-shadow:0 0 26px rgba(57,255,20,.18)}
+.btn-primary:hover{box-shadow:0 12px 32px rgba(57,255,20,.3)}
+.scroll-hint{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+  font-size:12px;font-family:var(--mono);color:#5e8a72;letter-spacing:1px}
+.scroll-hint span{display:block;font-size:16px;animation:bob 1.7s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(6px)}}
+
+/* ---------- 数据条 ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  max-width:880px;margin:0 auto;padding:0 24px}
+.stat{padding:22px 18px;border-radius:var(--radius);text-align:center;
+  border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(8px);
+  transition:transform .25s,border-color .25s,box-shadow .25s}
+.stat:hover{transform:translateY(-4px);border-color:rgba(57,255,20,.45);
+  box-shadow:0 14px 34px rgba(57,255,20,.12)}
+.stat b{display:block;font-family:var(--mono);font-size:34px;line-height:1.15;
+  color:var(--neon);text-shadow:0 0 20px rgba(57,255,20,.45)}
+.stat span{font-size:12.5px;color:var(--muted);letter-spacing:1px}
+
+/* ---------- 终端 ---------- */
+.term{border-radius:14px;overflow:hidden;border:1px solid rgba(57,255,20,.24);
+  background:rgba(3,8,6,.9);box-shadow:0 24px 60px rgba(0,0,0,.55),0 0 60px rgba(57,255,20,.06)}
+.term-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;
+  background:rgba(12,24,18,.95);border-bottom:1px solid rgba(57,255,20,.16)}
+.tl{width:11px;height:11px;border-radius:50%}
+.tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+.term-title{margin-left:10px;font-family:var(--mono);font-size:12px;color:#6f9c82}
+.term-body{padding:18px 20px;font-family:var(--mono);font-size:13.5px;line-height:1.95;
+  color:#c4e8d2;min-height:320px;max-height:380px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.tline{animation:fin .28s ease both}
+@keyframes fin{from{opacity:0;transform:translateY(4px)}}
+.tp{color:var(--neon);opacity:.9}
+.tout{color:#8fb8a0;padding-left:2px}
+.caret2{display:inline-block;width:8px;height:15px;background:var(--neon);
+  vertical-align:-2px;animation:blink 1.05s step-end infinite}
+
+/* ---------- 项目卡片 ---------- */
+.grid{display:grid;gap:16px}
+.projects{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.card{position:relative;display:flex;flex-direction:column;gap:10px;padding:20px;
+  border-radius:var(--radius);border:1px solid var(--line);background:var(--panel);
+  backdrop-filter:blur(8px);transition:transform .3s cubic-bezier(.2,.7,.3,1),border-color .3s,box-shadow .3s;
+  transform-style:preserve-3d;will-change:transform}
+.card:hover{border-color:rgba(57,255,20,.5);box-shadow:0 20px 44px rgba(0,0,0,.4),0 0 34px rgba(57,255,20,.14)}
+.card-top{display:flex;align-items:center;gap:10px}
+.card-ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+  font-size:17px;background:rgba(57,255,20,.1);border:1px solid var(--line)}
+.card-name{font-family:var(--mono);font-size:15px;color:#e6fff0;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-desc{margin:0;font-size:13.5px;color:#9dbdab;line-height:1.7;flex:1;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:12px;color:#6f9c82}
+.card-meta .lang::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--neon2);margin-right:6px;vertical-align:1px}
+.card-link{font-size:12.5px;font-family:var(--mono);color:var(--neon);opacity:.85;margin-left:auto}
+.card:hover .card-link{opacity:1}
+
+/* ---------- 技能 ---------- */
+.stack{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.tile{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:13px;
+  border:1px solid var(--line);background:rgba(8,16,13,.6);font-size:13.5px;color:#c8e6d4;
+  transition:transform .22s,border-color .22s,box-shadow .22s,color .22s}
+.tile:hover{transform:translateY(-3px);border-color:rgba(57,255,20,.5);color:#eafff2;
+  box-shadow:0 12px 28px rgba(57,255,20,.12)}
+.tile i{font-style:normal;font-size:17px}
+
+/* ---------- 时间线 ---------- */
+.timeline{position:relative;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:1px;
+  background:linear-gradient(180deg,var(--neon),rgba(57,255,20,.05))}
+.tl-item{position:relative;padding:0 0 22px 4px}
+.tl-item::before{content:"";position:absolute;left:-25px;top:9px;width:9px;height:9px;
+  border-radius:50%;background:var(--bg);border:1.5px solid var(--neon);box-shadow:0 0 10px rgba(57,255,20,.6)}
+.tl-when{font-family:var(--mono);font-size:12px;color:var(--neon);letter-spacing:1px}
+.tl-what{margin:2px 0 0;font-size:14px;color:#b6d4c2}
+
+/* ---------- 联系 ---------- */
+.contact{padding:34px 28px;border-radius:var(--radius);text-align:center;
+  border:1px solid rgba(57,255,20,.3);background:var(--panel);backdrop-filter:blur(8px);
+  box-shadow:0 0 60px rgba(57,255,20,.07) inset}
+.contact p{margin:0 0 20px;color:#a9c4b4;font-size:14.5px}
+.contact-links{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.chip{font-family:var(--mono);font-size:13px;padding:9px 18px;border-radius:999px;
+  border:1px solid var(--line);color:#c8ffd6;transition:.22s}
+.chip:hover{border-color:rgba(57,255,20,.6);box-shadow:0 0 20px rgba(57,255,20,.2);transform:translateY(-2px)}
+
+footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12px;
+  font-family:var(--mono);padding:56px 24px 40px}
+.totop{position:fixed;right:22px;bottom:22px;z-index:55;width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--line);background:rgba(6,14,10,.9);color:var(--neon);font-size:17px;
+  cursor:pointer;opacity:0;pointer-events:none;transition:.28s;backdrop-filter:blur(8px)}
+.totop.show{opacity:1;pointer-events:auto}
+.totop:hover{border-color:rgba(57,255,20,.6);box-shadow:0 0 22px rgba(57,255,20,.3);transform:translateY(-3px)}
+
+@media (max-width:760px){
+  .nav-links{display:none}
+  .nav{padding:12px 18px}
+  .nav-gh{margin-left:auto}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .section{padding:56px 0 8px}
+  .hero{min-height:92vh}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important}
+  .reveal{opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
 </style>
 </head>
 <body>
+<div class="progress" id="progress"></div>
+<div class="bg-grid"></div>
 <canvas id="matrix"></canvas>
-<div class="wrap">
-  <div class="card">
-    <header>
-      <div class="avatar">Y</div>
-      <h1>Yuh302331-ctrl</h1>
-      <p class="tagline"><span id="typed"></span><span class="caret">_</span></p>
-    </header>
+<div class="spotlight" id="spotlight"></div>
+<div class="vignette"></div>
 
-    <section>
-      <h2>关于我</h2>
-      <p>喜欢折腾终端和自动化的小工具，用 PowerShell 和 Git 做点好玩的东西。</p>
-      <p>最近在学写代码，目标是把自己的想法一个个变成能跑起来的项目。</p>
-    </section>
-
-    <section>
-      <h2>项目</h2>
-      <div class="projects">
-        <a class="project" href="https://github.com/Yuh302331-ctrl/matrix-rain" target="_blank" rel="noopener">
-          <strong>Matrix Rain</strong>
-          <span>Windows PowerShell 绿色矩阵雨终端动画，带高亮雨头和拖尾</span>
-        </a>
-      </div>
-    </section>
-
-    <section>
-      <h2>折腾过</h2>
-      <ul class="tags">
-        <li>Windows PowerShell</li>
-        <li>Git / GitHub</li>
-        <li>终端美化</li>
-        <li>Codex</li>
-        <li>自动化脚本</li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>联系</h2>
-      <p>GitHub：<a href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">@Yuh302331-ctrl</a></p>
-      <p>邮箱：<a href="mailto:Yuh302331-ctrl@users.noreply.github.com">Yuh302331-ctrl@users.noreply.github.com</a></p>
-    </section>
+<nav class="nav" id="nav">
+  <a class="brand" href="#top"><span class="dot"></span>yuh302331-ctrl</a>
+  <div class="nav-links">
+    <a href="#about">关于</a>
+    <a href="#projects">项目</a>
+    <a href="#stack">技能</a>
+    <a href="#now">现在</a>
+    <a href="#contact">联系</a>
   </div>
-</div>
-<footer>© 2026 Yuh302331-ctrl · Powered by GitHub Pages</footer>
+  <a class="nav-gh" href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">GitHub ↗</a>
+</nav>
+
+<main>
+  <section class="hero" id="top">
+    <div class="avatar-wrap">
+      <div class="ring"></div>
+      <div class="ring ring2"></div>
+      <div class="avatar">Y</div>
+    </div>
+    <div class="badge"><span class="pulse"></span> 在线折腾中</div>
+    <h1>Yuh302331<span class="thin">-ctrl</span></h1>
+    <p class="typed-line"><span class="prompt">$</span><span id="typed"></span><span class="caret">▋</span></p>
+    <p class="hero-desc">喜欢折腾终端和自动化的小工具。用 PowerShell 和 Git，把脑子里的想法一个个变成能跑起来的东西。</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#projects">看看项目</a>
+      <a class="btn" href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">GitHub 主页</a>
+    </div>
+    <a class="scroll-hint" href="#stats">向下<span>↓</span></a>
+  </section>
+
+  <section class="stats" id="stats">
+    <div class="stat reveal"><b id="s-repos">—</b><span>公开仓库</span></div>
+    <div class="stat reveal" style="--d:90ms"><b id="s-stars">—</b><span>获得 Star</span></div>
+    <div class="stat reveal" style="--d:180ms"><b id="s-followers">—</b><span>关注者</span></div>
+    <div class="stat reveal" style="--d:270ms"><b id="s-days">—</b><span>折腾天数</span></div>
+  </section>
+
+  <section class="section wrap" id="about">
+    <h2 class="sec-title reveal"><span class="num">01</span> 关于我</h2>
+    <div class="term reveal">
+      <div class="term-bar">
+        <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+        <span class="term-title">about — powershell</span>
+      </div>
+      <div class="term-body" id="termBody"></div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="projects">
+    <h2 class="sec-title reveal"><span class="num">02</span> 项目</h2>
+    <div class="grid projects" id="projGrid">
+      <a class="card reveal" href="https://github.com/Yuh302331-ctrl/matrix-rain" target="_blank" rel="noopener">
+        <div class="card-top"><span class="card-ico">🌧️</span><span class="card-name">matrix-rain</span></div>
+        <p class="card-desc">Windows PowerShell 绿色矩阵雨终端动画，带高亮雨头和拖尾效果。</p>
+        <div class="card-meta"><span class="lang">PowerShell</span><span class="card-link">查看 →</span></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section wrap" id="stack">
+    <h2 class="sec-title reveal"><span class="num">03</span> 技能 &amp; 工具</h2>
+    <div class="grid stack">
+      <div class="tile reveal"><i>⚡</i>PowerShell</div>
+      <div class="tile reveal" style="--d:60ms"><i>🌿</i>Git / GitHub</div>
+      <div class="tile reveal" style="--d:120ms"><i>🖥️</i>Windows 折腾</div>
+      <div class="tile reveal" style="--d:180ms"><i>✨</i>终端美化</div>
+      <div class="tile reveal" style="--d:240ms"><i>🤖</i>Codex</div>
+      <div class="tile reveal" style="--d:300ms"><i>🧩</i>自动化脚本</div>
+      <div class="tile reveal" style="--d:360ms"><i>📄</i>文档 / 笔记</div>
+      <div class="tile reveal" style="--d:420ms"><i>🌐</i>静态站点</div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="now">
+    <h2 class="sec-title reveal"><span class="num">04</span> 现在</h2>
+    <div class="timeline">
+      <div class="tl-item reveal">
+        <div class="tl-when">2026.09</div>
+        <p class="tl-what">开始把折腾的东西搬到 GitHub，第一个项目是矩阵雨脚本。</p>
+      </div>
+      <div class="tl-item reveal" style="--d:90ms">
+        <div class="tl-when">现在</div>
+        <p class="tl-what">在学写代码，用 Codex 帮忙做各种小工具和自动化脚本。</p>
+      </div>
+      <div class="tl-item reveal" style="--d:180ms">
+        <div class="tl-when">接下来</div>
+        <p class="tl-what">更多终端美化和自动化项目，把这个主页一点点填满。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="contact">
+    <h2 class="sec-title reveal"><span class="num">05</span> 联系</h2>
+    <div class="contact reveal">
+      <p>想聊终端折腾、脚本或者随便什么，都可以直接找我。</p>
+      <div class="contact-links">
+        <a class="chip" href="https://github.com/Yuh302331-ctrl" target="_blank" rel="noopener">GitHub</a>
+        <a class="chip" href="https://github.com/Yuh302331-ctrl/matrix-rain" target="_blank" rel="noopener">matrix-rain</a>
+        <a class="chip" href="mailto:Yuh302331-ctrl@users.noreply.github.com">Email</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>© 2026 Yuh302331-ctrl · Built with GitHub Pages</footer>
+<button class="totop" id="totop" aria-label="回到顶部">↑</button>
 
 <script>
 (function () {
-  var canvas = document.getElementById('matrix');
-  var ctx = canvas.getContext('2d');
-  var fs = 15;
-  var cols = 0;
-  var drops = [];
-  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=<>'.split('');
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    cols = Math.floor(canvas.width / fs);
-    drops = [];
-    for (var i = 0; i < cols; i++) drops.push(Math.random() * -60);
+  /* ---------- 矩阵雨 ---------- */
+  var cv = document.getElementById('matrix');
+  if (cv) {
+    var ctx = cv.getContext('2d');
+    var fs = 16, cols = 0, drops = [], spd = [];
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=<>/'.split('');
+    var resize = function () {
+      cv.width = window.innerWidth;
+      cv.height = window.innerHeight;
+      cols = Math.ceil(cv.width / fs);
+      drops = []; spd = [];
+      for (var i = 0; i < cols; i++) {
+        drops.push(Math.random() * -70);
+        spd.push(0.45 + Math.random() * 0.85);
+      }
+      ctx.font = fs + 'px Consolas, monospace';
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    var draw = function () {
+      ctx.fillStyle = 'rgba(4, 7, 10, 0.10)';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      for (var i = 0; i < cols; i++) {
+        var r = Math.random();
+        ctx.fillStyle = r > 0.988 ? '#d8ffe2' : (r > 0.90 ? '#39ff14' : '#0d6f35');
+        ctx.fillText(chars[(Math.random() * chars.length) | 0], i * fs, drops[i] * fs);
+        drops[i] += spd[i];
+        if (drops[i] * fs > cv.height && Math.random() > 0.975) drops[i] = -Math.random() * 24;
+      }
+    };
+    setInterval(draw, 62);
   }
-  resize();
-  window.addEventListener('resize', resize);
 
-  function draw() {
-    ctx.fillStyle = 'rgba(5, 8, 7, 0.09)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.font = fs + 'px Consolas, monospace';
-    for (var i = 0; i < cols; i++) {
-      var ch = chars[Math.floor(Math.random() * chars.length)];
-      var y = drops[i] * fs;
-      ctx.fillStyle = Math.random() > 0.975 ? '#c8ffc0' : '#0f8a3c';
-      ctx.fillText(ch, i * fs, y);
-      if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
-    }
+  /* ---------- 打字机 ---------- */
+  var lines = ['折腾终端的小工具爱好者', 'PowerShell + Git 玩家', 'Codex 常驻用户', '把想法写成能跑的东西'];
+  var tEl = document.getElementById('typed');
+  if (tEl) {
+    var li = 0, ci = 0, del = false;
+    var type = function () {
+      var t = lines[li];
+      if (reduce) { tEl.textContent = t; return; }
+      if (!del) {
+        ci++; tEl.textContent = t.slice(0, ci);
+        if (ci === t.length) { del = true; return setTimeout(type, 1500); }
+      } else {
+        ci--; tEl.textContent = t.slice(0, ci);
+        if (ci === 0) { del = false; li = (li + 1) % lines.length; }
+      }
+      setTimeout(type, del ? 38 : 92);
+    };
+    type();
   }
-  setInterval(draw, 65);
 
-  var lines = [
-    '折腾终端的小工具爱好者',
-    'PowerShell + Git 玩家',
-    'Codex 常驻用户',
-    '把想法写成能跑的东西'
+  /* ---------- 滚动进度 / 导航 / 回顶 ---------- */
+  var prog = document.getElementById('progress');
+  var nav = document.getElementById('nav');
+  var totop = document.getElementById('totop');
+  var onScroll = function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+    nav.classList.toggle('scrolled', h.scrollTop > 40);
+    totop.classList.toggle('show', h.scrollTop > 600);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); });
+
+  /* ---------- 光斑跟随 ---------- */
+  window.addEventListener('pointermove', function (e) {
+    var s = document.documentElement.style;
+    s.setProperty('--mx', e.clientX + 'px');
+    s.setProperty('--my', e.clientY + 'px');
+  }, { passive: true });
+
+  /* ---------- 滚动显现 ---------- */
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el) { io.observe(el); });
+  } else {
+    Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el) { el.classList.add('in'); });
+  }
+
+  /* ---------- 滚动到锚点高亮 ---------- */
+  if ('IntersectionObserver' in window) {
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nav-links a'));
+    var spy = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (l) {
+          l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id);
+        });
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    links.forEach(function (l) {
+      var t = document.querySelector(l.getAttribute('href'));
+      if (t) spy.observe(t);
+    });
+  }
+
+  /* ---------- 数字滚动 ---------- */
+  var countUp = function (el, to) {
+    if (!el) return;
+    if (reduce) { el.textContent = to; return; }
+    var start = performance.now(), dur = 1100;
+    var step = function (t) {
+      var p = Math.min(1, (t - start) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(to * e);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
+  var USER = 'Yuh302331-ctrl';
+  fetch('https://api.github.com/users/' + USER)
+    .then(function (r) { return r.json(); })
+    .then(function (u) {
+      if (!u || u.message) return;
+      countUp(document.getElementById('s-repos'), u.public_repos || 0);
+      countUp(document.getElementById('s-followers'), u.followers || 0);
+      var d = Math.max(1, Math.round((Date.now() - new Date(u.created_at)) / 86400000));
+      countUp(document.getElementById('s-days'), d);
+    })
+    .catch(function () {});
+
+  /* ---------- 项目卡片自动生成 ---------- */
+  var ICONS = { PowerShell: '⚡', JavaScript: '🟨', HTML: '🌐', CSS: '🎨', Python: '🐍', TypeScript: '🔷' };
+  var grid = document.getElementById('projGrid');
+  var bindTilt = function (scope) {
+    if (reduce) return;
+    Array.prototype.forEach.call(scope.querySelectorAll('[data-tilt]'), function (c) {
+      c.addEventListener('mousemove', function (e) {
+        var r = c.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        c.style.transform = 'perspective(820px) rotateY(' + (px * 7).toFixed(2) +
+          'deg) rotateX(' + (-py * 7).toFixed(2) + 'deg) translateY(-4px)';
+      });
+      c.addEventListener('mouseleave', function () { c.style.transform = ''; });
+    });
+  };
+  fetch('https://api.github.com/users/' + USER + '/repos?per_page=100&sort=pushed')
+    .then(function (r) { return r.json(); })
+    .then(function (rs) {
+      if (!Array.isArray(rs) || !rs.length || !grid) return;
+      var stars = rs.reduce(function (a, r) { return a + (r.stargazers_count || 0); }, 0);
+      countUp(document.getElementById('s-stars'), stars);
+      rs.sort(function (a, b) { return new Date(b.pushed_at) - new Date(a.pushed_at); });
+      grid.innerHTML = rs.slice(0, 6).map(function (r, i) {
+        var name = String(r.name).replace(/[<>&"]/g, '');
+        var desc = String(r.description || '暂时还没有描述。').replace(/[<>&"]/g, '');
+        var lang = String(r.language || 'Code').replace(/[<>&"]/g, '');
+        var icon = ICONS[r.language] || (r.name.indexOf('.github.io') > -1 ? '🏠' : '📦');
+        var star = r.stargazers_count ? '<span>★ ' + r.stargazers_count + '</span>' : '';
+        return '<a class="card reveal in" data-tilt style="--d:' + (i * 70) + 'ms"' +
+          ' href="' + r.html_url + '" target="_blank" rel="noopener">' +
+          '<div class="card-top"><span class="card-ico">' + icon + '</span>' +
+          '<span class="card-name">' + name + '</span></div>' +
+          '<p class="card-desc">' + desc + '</p>' +
+          '<div class="card-meta"><span class="lang">' + lang + '</span>' + star +
+          '<span class="card-link">查看 →</span></div></a>';
+      }).join('');
+      bindTilt(grid);
+    })
+    .catch(function () {});
+  bindTilt(document);
+
+  /* ---------- 终端演出 ---------- */
+  var term = document.getElementById('termBody');
+  var SCRIPT = [
+    ['cmd', 'whoami'],
+    ['out', 'yuh302331-ctrl'],
+    ['cmd', 'Get-Content .\\about.txt'],
+    ['out', '喜欢折腾终端和自动化的小工具。'],
+    ['out', '正在把脑子里的想法，一个个变成能跑起来的项目。'],
+    ['cmd', '$skills -join ", "'],
+    ['out', 'PowerShell, Git, GitHub, 终端美化, 自动化脚本, Codex'],
+    ['cmd', '.\\contact.ps1'],
+    ['out', 'GitHub   ->  github.com/Yuh302331-ctrl'],
+    ['out', 'Mail     ->  Yuh302331-ctrl@users.noreply.github.com']
   ];
-  var el = document.getElementById('typed');
-  var li = 0, ci = 0, deleting = false;
-
-  function type() {
-    var text = lines[li];
-    if (!deleting) {
-      ci++;
-      el.textContent = text.slice(0, ci);
-      if (ci === text.length) { deleting = true; return setTimeout(type, 1600); }
-    } else {
-      ci--;
-      el.textContent = text.slice(0, ci);
-      if (ci === 0) { deleting = false; li = (li + 1) % lines.length; }
-    }
-    setTimeout(type, deleting ? 40 : 95);
+  var renderAll = function () {
+    term.innerHTML = SCRIPT.map(function (l) {
+      return l[0] === 'cmd'
+        ? '<div class="tline"><span class="tp">PS C:\\&gt;</span> ' + l[1] + '</div>'
+        : '<div class="tline tout">' + l[1] + '</div>';
+    }).join('') + '<div class="tline"><span class="tp">PS C:\\&gt;</span> <span class="caret2"></span></div>';
+  };
+  var play = function () {
+    var i = 0, j = 0, cur = null;
+    var step = function () {
+      if (i >= SCRIPT.length) {
+        var end = document.createElement('div');
+        end.className = 'tline';
+        end.innerHTML = '<span class="tp">PS C:\\&gt;</span> <span class="caret2"></span>';
+        term.appendChild(end);
+        term.scrollTop = term.scrollHeight;
+        return;
+      }
+      var kind = SCRIPT[i][0], text = SCRIPT[i][1];
+      if (kind === 'out') {
+        var d = document.createElement('div');
+        d.className = 'tline tout';
+        d.textContent = text;
+        term.appendChild(d);
+        term.scrollTop = term.scrollHeight;
+        i++; setTimeout(step, 150);
+        return;
+      }
+      if (j === 0) {
+        cur = document.createElement('div');
+        cur.className = 'tline';
+        cur.innerHTML = '<span class="tp">PS C:\\&gt;</span> <span></span>';
+        term.appendChild(cur);
+      }
+      var span = cur.lastElementChild;
+      span.textContent += text.charAt(j);
+      j++; term.scrollTop = term.scrollHeight;
+      if (j >= text.length) { i++; j = 0; setTimeout(step, 300); }
+      else setTimeout(step, 40);
+    };
+    step();
+  };
+  if (term) {
+    if (reduce) { renderAll(); }
+    else if ('IntersectionObserver' in window) {
+      var started = false;
+      var tio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (e.isIntersecting && !started) { started = true; play(); tio.disconnect(); }
+        });
+      }, { threshold: 0.25 });
+      tio.observe(term);
+    } else { play(); }
   }
-  type();
 })();
 </script>
 </body>
