@@ -11,6 +11,7 @@ system_report.py — Windows 系统体检报告生成器（纯标准库，零依
     python system_report.py --json         # 输出 JSON 格式
     python system_report.py --save         # 同时保存报告到 ./system_report_<日期>.txt
     python system_report.py --sample 1.0   # 指定 CPU 采样时长（秒，默认 0.6）
+    python system_report.py --gui          # 打开图形界面（百分比圆环面板）
 """
 
 import argparse
@@ -27,6 +28,11 @@ try:
     import winreg
 except ImportError:
     winreg = None
+
+try:
+    import tkinter as tk
+except Exception:
+    tk = None
 
 IS_WINDOWS = os.name == "nt"
 _kernel32 = ctypes.windll.kernel32 if IS_WINDOWS else None
@@ -395,6 +401,242 @@ def get_uptime():
     }
 
 
+# ---------- 图形界面（--gui） ----------
+
+GUI_BG = "#0b0f14"
+GUI_PANEL = "#151c24"
+GUI_TRACK = "#233040"
+GUI_TEXT = "#e6edf3"
+GUI_MUTED = "#8b98a5"
+GUI_OK = "#39d353"
+GUI_WARN = "#e3b341"
+GUI_BAD = "#f85149"
+GUI_FONT = "Microsoft YaHei UI"
+
+
+def _level_color(percent):
+    """使用率越高越危险：绿 -> 黄 -> 红"""
+    if percent >= 90:
+        return GUI_BAD
+    if percent >= 75:
+        return GUI_WARN
+    return GUI_OK
+
+
+def _battery_color(percent):
+    """电池反过来：越低越危险"""
+    if percent <= 20:
+        return GUI_BAD
+    if percent <= 40:
+        return GUI_WARN
+    return GUI_OK
+
+
+_CanvasBase = object if tk is None else tk.Canvas
+
+
+class _Ring(_CanvasBase):
+    """百分比圆环：底环 + 一段进度弧，中间叠三行文字"""
+
+    def __init__(self, master, label, size=124, thickness=11):
+        super().__init__(master, width=size, height=size, bg=GUI_PANEL,
+                         highlightthickness=0, bd=0)
+        self.size = size
+        self.thickness = thickness
+        center = size / 2
+        self._value_id = self.create_text(center, center - 16, text="--",
+                                          fill=GUI_TEXT, font=(GUI_FONT, 16, "bold"))
+        self._label_id = self.create_text(center, center + 7, text=label,
+                                          fill=GUI_MUTED, font=(GUI_FONT, 9))
+        self._detail_id = self.create_text(center, center + 25, text="",
+                                           fill=GUI_MUTED, font=(GUI_FONT, 8))
+        self.set(None)
+
+    def set(self, percent, detail=None, color=None):
+        self.delete("ring")
+        pad = self.thickness / 2 + 1
+        box = (pad, pad, self.size - pad, self.size - pad)
+        self.create_oval(box[0], box[1], box[2], box[3], outline=GUI_TRACK,
+                         width=self.thickness, tags="ring")
+        if percent is None:
+            self.itemconfigure(self._value_id, text="--")
+        else:
+            value = max(0.0, min(100.0, float(percent)))
+            if value > 0:
+                extent = -max(0.7, 359.9 * value / 100.0)
+                self.create_arc(box[0], box[1], box[2], box[3], start=90,
+                                extent=extent, style=tk.ARC,
+                                outline=color or _level_color(value),
+                                width=self.thickness, tags="ring")
+            self.itemconfigure(self._value_id, text="%.0f%%" % value)
+        self.itemconfigure(self._detail_id, text=detail or "")
+        self.tag_lower("ring")
+
+
+class _GuiApp:
+    """深色仪表盘窗口"""
+
+    def __init__(self, root, sample_seconds):
+        self.root = root
+        self.sample_seconds = sample_seconds
+        self.rings = {}
+        self._build()
+
+    def _build(self):
+        root = self.root
+        root.title("系统体检报告")
+        root.configure(bg=GUI_BG)
+        root.minsize(760, 620)
+
+        header = tk.Frame(root, bg=GUI_BG)
+        header.pack(fill="x", padx=22, pady=(18, 2))
+        tk.Label(header, text="系统体检报告", bg=GUI_BG, fg=GUI_TEXT,
+                 font=(GUI_FONT, 17, "bold")).pack(side="left")
+        tk.Button(header, text="重新检测", command=self.refresh, bg=GUI_PANEL,
+                  fg=GUI_TEXT, activebackground=GUI_TRACK, activeforeground=GUI_TEXT,
+                  relief="flat", bd=0, padx=14, pady=6, cursor="hand2",
+                  font=(GUI_FONT, 9)).pack(side="right")
+
+        self.subtitle = tk.Label(root, text="正在检测…", bg=GUI_BG, fg=GUI_MUTED,
+                                 font=(GUI_FONT, 9), anchor="w", justify="left")
+        self.subtitle.pack(fill="x", padx=24, pady=(0, 12))
+
+        main = tk.Frame(root, bg=GUI_BG)
+        main.pack(fill="both", expand=True, padx=22, pady=(0, 20))
+
+        top = tk.Frame(main, bg=GUI_PANEL)
+        top.pack(fill="x")
+        for key, label in (("cpu", "CPU 使用率"), ("memory", "内存"), ("battery", "电池")):
+            holder = tk.Frame(top, bg=GUI_PANEL)
+            holder.pack(side="left", expand=True, pady=14)
+            ring = _Ring(holder, label)
+            ring.pack()
+            self.rings[key] = ring
+
+        disk_panel = tk.Frame(main, bg=GUI_PANEL)
+        disk_panel.pack(fill="x", pady=(12, 0))
+        tk.Label(disk_panel, text="磁盘", bg=GUI_PANEL, fg=GUI_MUTED,
+                 font=(GUI_FONT, 10, "bold")).pack(anchor="w", padx=18, pady=(12, 0))
+        self.disk_row = tk.Frame(disk_panel, bg=GUI_PANEL)
+        self.disk_row.pack(fill="x", padx=10, pady=(0, 14))
+
+        self.info_frame = tk.Frame(main, bg=GUI_PANEL)
+        self.info_frame.pack(fill="x", pady=(12, 0))
+
+        tips_panel = tk.Frame(main, bg=GUI_PANEL)
+        tips_panel.pack(fill="both", expand=True, pady=(12, 0))
+        tk.Label(tips_panel, text="健康建议", bg=GUI_PANEL, fg=GUI_MUTED,
+                 font=(GUI_FONT, 10, "bold")).pack(anchor="w", padx=18, pady=(12, 2))
+        self.tips_body = tk.Frame(tips_panel, bg=GUI_PANEL)
+        self.tips_body.pack(fill="both", expand=True, padx=18, pady=(0, 16))
+
+    def refresh(self):
+        self.subtitle.configure(text="正在检测…（CPU 采样 %.1f 秒）" % self.sample_seconds)
+        self.root.update_idletasks()
+        try:
+            report = build_report(self.sample_seconds)
+        except Exception as exc:
+            self.subtitle.configure(text="检测失败：%s" % exc)
+            return
+        self._render(report)
+
+    def _render(self, report):
+        info = report["system"]
+        self.subtitle.configure(
+            text="%s  ·  %s  ·  %s" % (info["hostname"], info["os"], info["processor"])
+        )
+
+        cpu = report["cpu"]
+        if "error" in cpu:
+            self.rings["cpu"].set(None, detail=cpu["error"])
+        else:
+            self.rings["cpu"].set(cpu["usage_percent"],
+                                  detail="%d 个逻辑核心" % cpu["cores_logical"])
+
+        mem = report["memory"]
+        if "error" in mem:
+            self.rings["memory"].set(None, detail=mem["error"])
+        else:
+            self.rings["memory"].set(
+                mem["usage_percent"],
+                detail="%s / %s" % (mem["used_readable"], mem["total_readable"]),
+            )
+
+        bat = report["battery"]
+        if "error" in bat or not bat.get("battery_present"):
+            self.rings["battery"].set(None, detail="未检测到电池")
+        else:
+            percent = bat["battery_percent"]
+            detail = bat["ac_status"]
+            if "seconds_left" in bat:
+                hours, minutes = divmod(bat["seconds_left"] // 60, 60)
+                detail = "约 %d 小时 %d 分" % (hours, minutes)
+            self.rings["battery"].set(percent, detail=detail, color=_battery_color(percent))
+
+        for child in self.disk_row.winfo_children():
+            child.destroy()
+        for disk in report["disks"]:
+            holder = tk.Frame(self.disk_row, bg=GUI_PANEL)
+            holder.pack(side="left", padx=6, pady=(4, 0))
+            ring = _Ring(holder, disk.get("drive", "?"))
+            ring.pack()
+            if "error" in disk:
+                ring.set(None, detail=disk["error"])
+            else:
+                ring.set(disk["usage_percent"],
+                         detail="%s / %s" % (disk["used_readable"], disk["total_readable"]))
+
+        for child in self.info_frame.winfo_children():
+            child.destroy()
+        uptime = report["uptime"]
+        rows = [
+            ("CPU 型号", info["processor"]),
+            ("系统版本", "%s  build %s" % (info["os"], info["os_version"])),
+            ("架构", info["arch"]),
+            ("Python", info["python"]),
+            ("运行时长", uptime["readable"] if "error" not in uptime else uptime["error"]),
+            ("生成时间", report["generated_at"]),
+        ]
+        for index, (key, value) in enumerate(rows):
+            column = (index % 2) * 2
+            row = index // 2
+            tk.Label(self.info_frame, text=key, bg=GUI_PANEL, fg=GUI_MUTED,
+                     font=(GUI_FONT, 9), anchor="w").grid(
+                row=row, column=column, sticky="w", padx=(18, 6), pady=5)
+            tk.Label(self.info_frame, text=value, bg=GUI_PANEL, fg=GUI_TEXT,
+                     font=(GUI_FONT, 9), anchor="w", justify="left").grid(
+                row=row, column=column + 1, sticky="w", padx=(0, 24), pady=5)
+
+        for child in self.tips_body.winfo_children():
+            child.destroy()
+        for tip in _collect_tips(report):
+            tk.Label(self.tips_body, text="•  " + tip.strip(), bg=GUI_PANEL, fg=GUI_TEXT,
+                     font=(GUI_FONT, 10), anchor="w", justify="left",
+                     wraplength=860).pack(fill="x", pady=3)
+
+
+def run_gui(sample_seconds=0.6):
+    """打开图形界面；tkinter 缺失或窗口创建失败时给出提示"""
+    if tk is None:
+        print("未检测到 tkinter，无法启动图形界面；请改用文本模式。", file=sys.stderr)
+        return 1
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except Exception:
+        pass
+    try:
+        root = tk.Tk()
+    except Exception as exc:
+        print("无法创建窗口：%s" % exc, file=sys.stderr)
+        return 1
+    app = _GuiApp(root, sample_seconds)
+    root.after(100, app.refresh)
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        pass
+    return 0
+
 # ---------- 报告输出 ----------
 
 def build_report(sample_seconds=0.6):
@@ -520,6 +762,7 @@ def main():
         metavar="SECONDS",
         help="CPU 采样时长（秒），默认 0.6",
     )
+    parser.add_argument("--gui", action="store_true", help="打开图形界面（百分比圆环面板）")
     args = parser.parse_args()
 
     _setup_console()
@@ -531,6 +774,10 @@ def main():
     _suppress_device_errors()
 
     sample_seconds = max(0.05, min(10.0, args.sample))
+
+    if args.gui:
+        return run_gui(sample_seconds)
+
     report = build_report(sample_seconds)
 
     if args.json:
