@@ -21,15 +21,26 @@ namespace SysReport
         public static readonly Color Ok = Color.FromArgb(57, 211, 83);
         public static readonly Color Warn = Color.FromArgb(227, 179, 65);
         public static readonly Color Bad = Color.FromArgb(248, 81, 73);
+        public static readonly Color Charge = Color.FromArgb(88, 166, 255);
         public const string FontFamily = "Microsoft YaHei UI";
     }
 
     internal static class Level
     {
+        public const double DiskWarnPercent = 70.0;
+        public const double DiskBadPercent = 85.0;
+
         public static Color Usage(double percent)
         {
             if (percent >= 90.0) return Theme.Bad;
             if (percent >= 75.0) return Theme.Warn;
+            return Theme.Ok;
+        }
+
+        public static Color Disk(double percent)
+        {
+            if (percent >= DiskBadPercent) return Theme.Bad;
+            if (percent >= DiskWarnPercent) return Theme.Warn;
             return Theme.Ok;
         }
 
@@ -38,6 +49,13 @@ namespace SysReport
             if (percent <= 20.0) return Theme.Bad;
             if (percent <= 40.0) return Theme.Warn;
             return Theme.Ok;
+        }
+
+        public static Color Battery(double percent, bool charging, bool acOnline)
+        {
+            if (charging) return Theme.Charge;
+            if (acOnline) return percent >= 95.0 ? Theme.Ok : Theme.Warn;
+            return Battery(percent);
         }
     }
 
@@ -76,9 +94,102 @@ namespace SysReport
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool AttachConsole(int processId);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int GetGuiResources(IntPtr process, int flags);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetProcessHandleCount(IntPtr process, out int count);
+
         public static ulong Ticks(NativeFileTime value)
         {
             return ((ulong)value.High << 32) | value.Low;
+        }
+    }
+
+    internal static class PerfProbe
+    {
+        private static System.Diagnostics.PerformanceCounter _cpuPerformance;
+        private static bool _cpuPerformanceUnavailable;
+        private static System.Diagnostics.PerformanceCounter[] _thermal;
+        private static bool _thermalUnavailable;
+
+        public static double CpuPerformancePercent()
+        {
+            if (_cpuPerformanceUnavailable) return -1.0;
+            try
+            {
+                if (_cpuPerformance == null)
+                {
+                    _cpuPerformance = new System.Diagnostics.PerformanceCounter(
+                        "Processor Information", "% Processor Performance", "_Total", true);
+                    _cpuPerformance.NextValue();
+                }
+                float value = _cpuPerformance.NextValue();
+                return value > 0f ? value : -1.0;
+            }
+            catch
+            {
+                _cpuPerformanceUnavailable = true;
+                _cpuPerformance = null;
+                return -1.0;
+            }
+        }
+
+        public static double ThermalZoneCelsius()
+        {
+            if (_thermalUnavailable) return -1.0;
+            try
+            {
+                if (_thermal == null) _thermal = OpenThermalCounters();
+                if (_thermal.Length == 0)
+                {
+                    _thermalUnavailable = true;
+                    return -1.0;
+                }
+                double best = -1.0;
+                for (int i = 0; i < _thermal.Length; i++)
+                {
+                    double celsius = _thermal[i].NextValue() / 10.0 - 273.15;
+                    if (celsius <= 0.0 || celsius >= 110.0) continue;
+                    if (celsius > best) best = celsius;
+                }
+                return best;
+            }
+            catch
+            {
+                _thermalUnavailable = true;
+                return -1.0;
+            }
+        }
+
+        private static System.Diagnostics.PerformanceCounter[] OpenThermalCounters()
+        {
+            List<System.Diagnostics.PerformanceCounter> list = new List<System.Diagnostics.PerformanceCounter>();
+            try
+            {
+                System.Diagnostics.PerformanceCounterCategory category =
+                    new System.Diagnostics.PerformanceCounterCategory("Thermal Zone Information");
+                string[] instances = category.GetInstanceNames();
+                for (int i = 0; i < instances.Length; i++)
+                {
+                    if (string.IsNullOrEmpty(instances[i])) continue;
+                    try
+                    {
+                        System.Diagnostics.PerformanceCounter counter =
+                            new System.Diagnostics.PerformanceCounter(
+                                "Thermal Zone Information", "High Precision Temperature", instances[i], true);
+                        counter.NextValue();
+                        list.Add(counter);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+            catch
+            {
+            }
+            return list.ToArray();
         }
     }
 
@@ -106,6 +217,9 @@ namespace SysReport
         public double CpuPercent = -1.0;
         public string CpuError;
         public int Cores;
+        public int CpuBaseMhz;
+        public int CpuCurrentMhz;
+        public double CpuTemperatureC = -1.0;
         public double MemPercent = -1.0;
         public string MemError;
         public string MemTotal = "";
@@ -113,6 +227,8 @@ namespace SysReport
         public string MemAvail = "";
         public List<DiskInfo> Disks = new List<DiskInfo>();
         public bool BatteryPresent;
+        public bool BatteryCharging;
+        public bool BatteryAcOnline;
         public int BatteryPercent = -1;
         public string BatteryStatus = "";
         public long BatterySecondsLeft = -1;
@@ -126,6 +242,12 @@ namespace SysReport
 
     internal static class Collector
     {
+        public static string FormatGhz(int megahertz)
+        {
+            if (megahertz <= 0) return "--";
+            return (megahertz / 1000.0).ToString("0.00", CultureInfo.InvariantCulture) + " GHz";
+        }
+
         public static string ReadableSize(double bytes)
         {
             double tb = bytes / 1099511627776.0;
@@ -204,6 +326,17 @@ namespace SysReport
             if (value >= 461808) return ".NET 4.7.2";
             if (value >= 460798) return ".NET 4.7";
             return ".NET " + Environment.Version.ToString(2);
+        }
+
+        private static int CpuBaseMhz()
+        {
+            string text = RegText(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "~MHz");
+            int parsed;
+            if (!string.IsNullOrEmpty(text)
+                && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed)
+                && parsed > 0)
+                return parsed;
+            return 0;
         }
 
         private static double SampleCpu(int milliseconds)
@@ -302,6 +435,13 @@ namespace SysReport
             report.CpuPercent = SampleCpu(sampleMilliseconds);
             if (report.CpuPercent < 0.0) report.CpuError = "无法读取 CPU 使用率";
 
+            report.CpuBaseMhz = CpuBaseMhz();
+            double performance = PerfProbe.CpuPerformancePercent();
+            report.CpuCurrentMhz = performance > 0.0 && report.CpuBaseMhz > 0
+                ? (int)Math.Round(report.CpuBaseMhz * performance / 100.0)
+                : report.CpuBaseMhz;
+            report.CpuTemperatureC = PerfProbe.ThermalZoneCelsius();
+
             NativeMemoryStatus memory = new NativeMemoryStatus();
             memory.Length = (uint)Marshal.SizeOf(typeof(NativeMemoryStatus));
             if (Native.GlobalMemoryStatusEx(ref memory))
@@ -322,20 +462,32 @@ namespace SysReport
             try
             {
                 PowerStatus power = SystemInformation.PowerStatus;
-                bool flagged = (power.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) != 0;
+                BatteryChargeStatus charge = power.BatteryChargeStatus;
+                bool noBattery = (charge & BatteryChargeStatus.NoSystemBattery) != 0;
+                bool charging = (charge & BatteryChargeStatus.Charging) != 0;
+                bool acOnline = power.PowerLineStatus == PowerLineStatus.Online;
                 float percent = power.BatteryLifePercent;
-                report.BatteryStatus = DescribePower(power.PowerLineStatus);
-                if (!flagged && percent >= 0f && percent <= 1f)
+                bool hasLevel = !noBattery && percent >= 0f && percent <= 1f;
+
+                report.BatteryPresent = hasLevel;
+                report.BatteryAcOnline = acOnline;
+                report.BatteryCharging = hasLevel && charging;
+                if (hasLevel)
                 {
-                    report.BatteryPresent = true;
                     report.BatteryPercent = (int)Math.Round(percent * 100f);
-                    if (power.PowerLineStatus == PowerLineStatus.Offline && power.BatteryLifeRemaining > 0)
+                    report.BatteryStatus = DescribePower(power.PowerLineStatus, report.BatteryCharging, report.BatteryPercent);
+                    if (!acOnline && power.BatteryLifeRemaining > 0)
                         report.BatterySecondsLeft = power.BatteryLifeRemaining;
+                }
+                else
+                {
+                    report.BatteryStatus = "未检测到电池";
                 }
             }
             catch
             {
                 report.BatteryPresent = false;
+                report.BatteryStatus = "未检测到电池";
             }
 
             ulong milliseconds = Native.GetTickCount64();
@@ -347,20 +499,19 @@ namespace SysReport
             report.UptimeHours = (int)hours;
             report.UptimeMinutes = (int)minutes;
             report.UptimeTotalSeconds = totalSeconds;
-            report.UptimeHours = (int)hours;
-            report.UptimeMinutes = (int)minutes;
-            report.UptimeTotalSeconds = totalSeconds;
             report.UptimeText = string.Format(CultureInfo.InvariantCulture, "{0} 天 {1} 小时 {2} 分钟", days, hours, minutes);
 
             BuildTips(report);
             return report;
         }
 
-        private static string DescribePower(PowerLineStatus status)
+        private static string DescribePower(PowerLineStatus status, bool charging, int capacityPercent)
         {
-            if (status == PowerLineStatus.Online) return "已接通电源";
             if (status == PowerLineStatus.Offline) return "使用电池";
-            return "未知";
+            if (status != PowerLineStatus.Online) return "未知";
+            if (charging) return "充电中";
+            if (capacityPercent >= 95) return "已充满";
+            return "已接通电源 · 未充电";
         }
 
         private static void BuildTips(Report report)
@@ -370,15 +521,23 @@ namespace SysReport
                 tips.Add("内存使用率偏高（>85%），建议关闭多余程序或考虑加装内存");
             foreach (DiskInfo disk in report.Disks)
             {
-                if (disk.Error == null && disk.UsagePercent > 90.0)
-                    tips.Add("磁盘 " + disk.Drive + " 使用率偏高（" + disk.UsagePercent.ToString("0.0", CultureInfo.InvariantCulture) + "%），建议清理空间");
+                if (disk.Error != null) continue;
+                string used = disk.UsagePercent.ToString("0.0", CultureInfo.InvariantCulture);
+                if (disk.UsagePercent >= Level.DiskBadPercent)
+                    tips.Add("磁盘 " + disk.Drive + " 已用 " + used + "%，仅剩 " + disk.FreeText + "，空间告急，建议立即清理");
+                else if (disk.UsagePercent >= Level.DiskWarnPercent)
+                    tips.Add("磁盘 " + disk.Drive + " 已用 " + used + "%（剩余 " + disk.FreeText + "），快满了，建议尽早清理");
             }
             if (report.CpuError == null && report.CpuPercent > 90.0)
                 tips.Add("CPU 使用率过高（>90%），可能存在异常进程");
+            if (report.CpuTemperatureC >= 85.0)
+                tips.Add("温区温度 " + report.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C 偏高，注意散热与风扇积灰");
             if (report.UptimeDays >= 30)
                 tips.Add("系统已连续运行超过 30 天，建议重启以完成更新并释放资源");
-            if (report.BatteryPresent && report.BatteryStatus == "使用电池" && report.BatteryPercent <= 20)
+            if (report.BatteryPresent && !report.BatteryAcOnline && report.BatteryPercent <= 20)
                 tips.Add("电池电量仅剩 " + report.BatteryPercent + "%，建议尽快接通电源");
+            else if (report.BatteryPresent && report.BatteryAcOnline && !report.BatteryCharging && report.BatteryPercent < 95)
+                tips.Add("电池已接通电源但未充电（当前 " + report.BatteryPercent + "%），可能是电池保护模式或充电受限");
             if (tips.Count == 0)
                 tips.Add("各项指标正常，设备健康状况良好");
             report.Tips = tips;
@@ -414,6 +573,10 @@ namespace SysReport
                 sb.AppendLine("【CPU 使用率】");
                 sb.AppendLine("  当前使用率: " + r.CpuPercent.ToString("0.0", CultureInfo.InvariantCulture) + "% " + Bar(r.CpuPercent, 10));
                 sb.AppendLine("  逻辑核心数: " + r.Cores);
+                sb.AppendLine("  当前频率  : " + Collector.FormatGhz(r.CpuCurrentMhz) + "（基频 " + Collector.FormatGhz(r.CpuBaseMhz) + "）");
+                sb.AppendLine("  温度      : " + (r.CpuTemperatureC >= 0.0
+                    ? r.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C（ACPI 温区）"
+                    : "不可用（该机型未暴露 CPU 温度传感器）"));
                 sb.AppendLine();
             }
             if (r.MemError == null)
@@ -445,7 +608,7 @@ namespace SysReport
             if (r.BatteryPresent)
             {
                 sb.AppendLine("  电源状态  : " + r.BatteryStatus);
-                sb.AppendLine("  剩余电量  : " + r.BatteryPercent + "%");
+                sb.AppendLine("  电池容量  : " + r.BatteryPercent + "%" + (r.BatteryCharging ? "（正在充电）" : ""));
                 if (r.BatterySecondsLeft > 0)
                 {
                     long hours = r.BatterySecondsLeft / 3600;
@@ -518,7 +681,10 @@ namespace SysReport
             {
                 sb.AppendLine("  \"cpu\": {");
                 sb.AppendLine("    \"usage_percent\": " + Num(r.CpuPercent) + ",");
-                sb.AppendLine("    \"cores_logical\": " + Int(r.Cores));
+                sb.AppendLine("    \"cores_logical\": " + Int(r.Cores) + ",");
+                sb.AppendLine("    \"base_mhz\": " + Int(r.CpuBaseMhz) + ",");
+                sb.AppendLine("    \"current_mhz\": " + Int(r.CpuCurrentMhz) + ",");
+                sb.AppendLine("    \"temperature_celsius\": " + Num(r.CpuTemperatureC));
                 sb.AppendLine("  },");
             }
             else
@@ -561,6 +727,8 @@ namespace SysReport
             sb.AppendLine("  ],");
             sb.AppendLine("  \"battery\": {");
             sb.AppendLine("    \"ac_status\": " + Esc(r.BatteryStatus) + ",");
+            sb.AppendLine("    \"ac_online\": " + (r.BatteryAcOnline ? "true" : "false") + ",");
+            sb.AppendLine("    \"charging\": " + (r.BatteryCharging ? "true" : "false") + ",");
             sb.AppendLine("    \"battery_present\": " + (r.BatteryPresent ? "true" : "false") + ",");
             sb.AppendLine("    \"battery_percent\": " + Int(r.BatteryPercent) + ",");
             sb.AppendLine("    \"seconds_left\": " + Int(r.BatterySecondsLeft));
@@ -706,7 +874,7 @@ namespace SysReport
         private const int BasePadX = 20;
         private const int BaseRingSize = 118;
         private const int BaseRingGap = 14;
-        private const int InfoRows = 4;
+        private const int InfoRows = 6;
 
         private readonly int _sampleMilliseconds;
         private float _scale;
@@ -730,7 +898,7 @@ namespace SysReport
         private readonly List<RingControl> _diskRings = new List<RingControl>();
         private readonly Label[] _infoKeys = new Label[InfoRows * 2];
         private readonly Label[] _infoValues = new Label[InfoRows * 2];
-        private readonly Label[] _tipLabels = new Label[8];
+        private readonly Label[] _tipLabels = new Label[10];
         private Report _report;
 
         public MainForm(int sampleMilliseconds) : this(sampleMilliseconds, 0f)
@@ -742,6 +910,7 @@ namespace SysReport
             _sampleMilliseconds = sampleMilliseconds;
             SetScaleFields(forcedScale > 0f ? forcedScale : DetectScale());
             Text = "系统体检";
+            Icon = LoadAppIcon();
             BackColor = Theme.Bg;
             ForeColor = Theme.Text;
             Font = new Font(Theme.FontFamily, 9f, FontStyle.Regular, GraphicsUnit.Point);
@@ -757,6 +926,18 @@ namespace SysReport
             _scroll.Dock = DockStyle.Fill;
             base.Controls.Add(_scroll);
             BuildUi();
+        }
+
+        private static Icon LoadAppIcon()
+        {
+            try
+            {
+                return System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private void SetScaleFields(float scale)
@@ -882,6 +1063,52 @@ namespace SysReport
             _scroll.AutoScrollPosition = new Point(0, 0);
         }
 
+        public string StressRefresh(int count)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("采样时长    : " + _sampleMilliseconds + " ms");
+            sb.AppendLine("界面缩放    : " + _scale.ToString("0.###", CultureInfo.InvariantCulture));
+            sb.AppendLine("刷新轮数    : " + count);
+            sb.AppendLine();
+            sb.AppendLine("轮数   工作集MB  私有MB  托管堆MB  GDI   USER  句柄");
+            for (int i = 0; i <= count; i++)
+            {
+                if (i > 0)
+                {
+                    RefreshData();
+                    Application.DoEvents();
+                }
+                if (i == 0 || i == count || i == 1 || i == 2 || i == 3 || i == 5 || i == 8 || i == 12 || i == 20 || i == 30 || i == 50 || i == 80 || i == 120 || i == 200 || i == 300 || i == 400 || i == 500)
+                    sb.AppendLine(StressLine(i));
+            }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Application.DoEvents();
+            sb.AppendLine("GC 后  " + StressLine(count));
+            return sb.ToString();
+        }
+
+        private static string StressLine(int round)
+        {
+            using (System.Diagnostics.Process process = System.Diagnostics.Process.GetCurrentProcess())
+            {
+                process.Refresh();
+                int handles;
+                Native.GetProcessHandleCount(process.Handle, out handles);
+                return string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0,-7}{1,-10}{2,-8}{3,-10}{4,-6}{5,-7}{6}",
+                    round,
+                    process.WorkingSet64 / 1048576,
+                    process.PrivateMemorySize64 / 1048576,
+                    GC.GetTotalMemory(false) / 1048576,
+                    Native.GetGuiResources(process.Handle, 0),
+                    Native.GetGuiResources(process.Handle, 1),
+                    handles);
+            }
+        }
+
         public string ShotDiagnostics()
         {
             StringBuilder sb = new StringBuilder();
@@ -968,7 +1195,7 @@ namespace SysReport
                 string detail = r.BatteryStatus;
                 if (r.BatterySecondsLeft > 0)
                     detail = "约 " + (r.BatterySecondsLeft / 3600) + " 小时 " + ((r.BatterySecondsLeft % 3600) / 60) + " 分";
-                _batteryRing.SetValue(r.BatteryPercent, detail, Level.Battery(r.BatteryPercent));
+                _batteryRing.SetValue(r.BatteryPercent, detail, Level.Battery(r.BatteryPercent, r.BatteryCharging, r.BatteryAcOnline));
             }
             else
             {
@@ -983,14 +1210,23 @@ namespace SysReport
                 _diskRings[i].SetValue(
                     disk.Error == null ? disk.UsagePercent : -1.0,
                     disk.Error == null ? CompactPair(disk.UsedText, disk.TotalText) : "未就绪",
-                    disk.Error == null ? Level.Usage(disk.UsagePercent) : Theme.Muted);
+                    disk.Error == null ? Level.Disk(disk.UsagePercent) : Theme.Muted);
                 _diskRings[i].Tag = caption;
             }
             for (int i = 0; i < r.Disks.Count; i++)
                 SetRingCaption(_diskRings[i], r.Disks[i].Drive.TrimEnd('\\'));
 
-            string[] keys = { "操作系统", "系统版本", "CPU 型号", "架构", "主机名", "运行时长", "生成时间", "运行时" };
-            string[] values = { r.Os, r.OsVersion, r.Processor, r.Arch, r.Hostname, r.UptimeText, r.GeneratedAt, r.Runtime };
+            string[] keys = {
+                "操作系统", "系统版本", "CPU 型号", "架构", "CPU 频率", "CPU 温度",
+                "主机名", "运行时长", "电源状态", "电池容量", "生成时间", "运行时" };
+            string[] values = {
+                r.Os, r.OsVersion, r.Processor, r.Arch,
+                Collector.FormatGhz(r.CpuCurrentMhz) + " / 基频 " + Collector.FormatGhz(r.CpuBaseMhz),
+                r.CpuTemperatureC >= 0.0
+                    ? r.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C（ACPI 温区）"
+                    : "不可用（无传感器）",
+                r.Hostname, r.UptimeText, r.BatteryStatus,
+                r.BatteryPercent >= 0 ? r.BatteryPercent + "%" : "--", r.GeneratedAt, r.Runtime };
             for (int i = 0; i < _infoKeys.Length; i++)
             {
                 _infoKeys[i].Text = keys[i];
@@ -1141,6 +1377,7 @@ namespace SysReport
             string shotFile = null;
             int sampleMilliseconds = 600;
             float forcedScale = 0f;
+            int stressCount = 0;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -1159,11 +1396,17 @@ namespace SysReport
                     if (float.TryParse(args[++i], NumberStyles.Float, CultureInfo.InvariantCulture, out parsedScale))
                         forcedScale = Math.Max(0.5f, Math.Min(4f, parsedScale));
                 }
+                else if (arg == "--stress" && i + 1 < args.Length)
+                {
+                    int parsedStress;
+                    if (int.TryParse(args[++i], NumberStyles.Integer, CultureInfo.InvariantCulture, out parsedStress))
+                        stressCount = Math.Max(0, Math.Min(5000, parsedStress));
+                }
                 else if (arg == "--out" && i + 1 < args.Length) outputFile = args[++i];
                 else if (arg == "--shot" && i + 1 < args.Length) shotFile = args[++i];
                 else if (arg == "--help" || arg == "-h" || arg == "/?")
                 {
-                    WriteOutput("用法:\n  SysReport.exe                打开图形界面\n  SysReport.exe --text         输出文本体检报告\n  SysReport.exe --json         输出 JSON\n  SysReport.exe --json --out 文件.json\n  SysReport.exe --sample 1.5   自定义 CPU 采样秒数（默认 0.6）\n  SysReport.exe --shot 图.png   离屏渲染一张界面截图（调试用）\n  SysReport.exe --scale 1.5    强制界面缩放倍数（配合 --shot 调试）\n", null);
+                    WriteOutput("用法:\n  SysReport.exe                打开图形界面\n  SysReport.exe --text         输出文本体检报告\n  SysReport.exe --json         输出 JSON\n  SysReport.exe --json --out 文件.json\n  SysReport.exe --sample 1.5   自定义 CPU 采样秒数（默认 0.6）\n  SysReport.exe --shot 图.png   离屏渲染一张界面截图（调试用）\n  SysReport.exe --scale 1.5    强制界面缩放倍数（配合 --shot 调试）\n  SysReport.exe --stress 200   连续刷新 200 轮并输出内存/GDI/句柄变化（查泄漏用）\n", null);
                     return;
                 }
             }
@@ -1188,6 +1431,23 @@ namespace SysReport
                 }
                 preview.Close();
                 preview.Dispose();
+                return;
+            }
+
+            if (stressCount > 0)
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                MainForm probe = new MainForm(sampleMilliseconds, forcedScale);
+                probe.StartPosition = FormStartPosition.Manual;
+                probe.Location = new Point(-32000, -32000);
+                probe.ShowInTaskbar = false;
+                probe.Show();
+                Application.DoEvents();
+                string stressReport = probe.StressRefresh(stressCount);
+                probe.Close();
+                probe.Dispose();
+                WriteOutput(stressReport, outputFile);
                 return;
             }
 
