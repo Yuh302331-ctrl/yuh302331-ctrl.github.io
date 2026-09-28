@@ -100,6 +100,9 @@ namespace SysReport
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool GetProcessHandleCount(IntPtr process, out int count);
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetLogicalProcessorInformation(IntPtr buffer, ref uint length);
+
         public static ulong Ticks(NativeFileTime value)
         {
             return ((ulong)value.High << 32) | value.Low;
@@ -219,7 +222,8 @@ namespace SysReport
         public int Cores;
         public int CpuBaseMhz;
         public int CpuCurrentMhz;
-        public double CpuTemperatureC = -1.0;
+        public int PhysicalCores;
+        public double ThermalZoneCelsius = -1.0;
         public double MemPercent = -1.0;
         public string MemError;
         public string MemTotal = "";
@@ -326,6 +330,98 @@ namespace SysReport
             if (value >= 461808) return ".NET 4.7.2";
             if (value >= 460798) return ".NET 4.7";
             return ".NET " + Environment.Version.ToString(2);
+        }
+
+        public static int PhysicalCoreCount()
+        {
+            try
+            {
+                uint length = 0;
+                Native.GetLogicalProcessorInformation(IntPtr.Zero, ref length);
+                if (length == 0) return 0;
+                IntPtr buffer = Marshal.AllocHGlobal((int)length);
+                try
+                {
+                    if (!Native.GetLogicalProcessorInformation(buffer, ref length)) return 0;
+                    int stride = IntPtr.Size * 2 + 16;
+                    int entries = (int)(length / (uint)stride);
+                    int cores = 0;
+                    for (int i = 0; i < entries; i++)
+                    {
+                        int relationship = Marshal.ReadInt32(new IntPtr(buffer.ToInt64() + i * stride), IntPtr.Size);
+                        if (relationship == 0) cores++;
+                    }
+                    return cores;
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(buffer);
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private sealed class LoadFlag
+        {
+            public volatile bool Running = true;
+        }
+
+        public static string TemperatureCheck(int seconds)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("温度可用性检测");
+            sb.AppendLine("================================================");
+            double idle = PerfProbe.ThermalZoneCelsius();
+            if (idle < 0.0)
+            {
+                sb.AppendLine("本机没有可用的 ACPI 温区计数器，读不到任何温度。");
+                sb.AppendLine("真正的 CPU 封装温度需要内核驱动读 MSR（IA32_PACKAGE_THERM_STATUS），");
+                sb.AppendLine("普通进程无法读取。建议用 HWiNFO 这类带签名驱动的工具。");
+                return sb.ToString();
+            }
+            sb.AppendLine("数据来源 : \\Thermal Zone Information(*)\\High Precision Temperature（ACPI 温区）");
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "空闲状态 : {0:0.00} °C   CPU {1:0.0} %", idle, SampleCpu(400)));
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "开始施加 {0} 秒满载负载…", seconds));
+
+            LoadFlag flag = new LoadFlag();
+            int threads = Math.Max(1, Environment.ProcessorCount);
+            System.Threading.Thread[] workers = new System.Threading.Thread[threads];
+            for (int i = 0; i < threads; i++)
+            {
+                workers[i] = new System.Threading.Thread(delegate()
+                {
+                    double x = 1.0;
+                    while (flag.Running) x = Math.Sqrt(x + 1.2345) * 1.000001;
+                });
+                workers[i].IsBackground = true;
+                workers[i].Start();
+            }
+            double peakLoad = -1.0;
+            System.Threading.Thread.Sleep(seconds * 1000);
+            peakLoad = SampleCpu(300);
+            double loaded = PerfProbe.ThermalZoneCelsius();
+            flag.Running = false;
+            for (int i = 0; i < threads; i++) workers[i].Join(2000);
+
+            double delta = loaded - idle;
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "满载状态 : {0:0.00} °C   CPU {1:0.0} %", loaded, peakLoad));
+            sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "温度变化 : {0:+0.00;-0.00;0.00} °C", delta));
+            sb.AppendLine();
+            if (delta >= 3.0)
+            {
+                sb.AppendLine("结论：该温区会跟随 CPU 负载明显变化，可以作为 CPU 温度的粗略参考。");
+            }
+            else
+            {
+                sb.AppendLine("结论：满载 " + seconds + " 秒后该温区几乎没有变化，说明它跟 CPU 无关。");
+                sb.AppendLine("      本机没有通过 ACPI 暴露 CPU 温度，软件因此不显示 CPU 温度，");
+                sb.AppendLine("      改用「主板温区」这个不会误导的说法。");
+                sb.AppendLine("      需要真实 CPU 温度请用 HWiNFO / AIDA64 这类带签名内核驱动的工具。");
+            }
+            return sb.ToString();
         }
 
         private static int CpuBaseMhz()
@@ -440,7 +536,8 @@ namespace SysReport
             report.CpuCurrentMhz = performance > 0.0 && report.CpuBaseMhz > 0
                 ? (int)Math.Round(report.CpuBaseMhz * performance / 100.0)
                 : report.CpuBaseMhz;
-            report.CpuTemperatureC = PerfProbe.ThermalZoneCelsius();
+            report.PhysicalCores = PhysicalCoreCount();
+            report.ThermalZoneCelsius = PerfProbe.ThermalZoneCelsius();
 
             NativeMemoryStatus memory = new NativeMemoryStatus();
             memory.Length = (uint)Marshal.SizeOf(typeof(NativeMemoryStatus));
@@ -530,8 +627,8 @@ namespace SysReport
             }
             if (report.CpuError == null && report.CpuPercent > 90.0)
                 tips.Add("CPU 使用率过高（>90%），可能存在异常进程");
-            if (report.CpuTemperatureC >= 85.0)
-                tips.Add("温区温度 " + report.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C 偏高，注意散热与风扇积灰");
+            if (report.ThermalZoneCelsius >= 85.0)
+                tips.Add("主板温区 " + report.ThermalZoneCelsius.ToString("0.0", CultureInfo.InvariantCulture) + " °C 偏高，注意散热与风扇积灰");
             if (report.UptimeDays >= 30)
                 tips.Add("系统已连续运行超过 30 天，建议重启以完成更新并释放资源");
             if (report.BatteryPresent && !report.BatteryAcOnline && report.BatteryPercent <= 20)
@@ -574,9 +671,10 @@ namespace SysReport
                 sb.AppendLine("  当前使用率: " + r.CpuPercent.ToString("0.0", CultureInfo.InvariantCulture) + "% " + Bar(r.CpuPercent, 10));
                 sb.AppendLine("  逻辑核心数: " + r.Cores);
                 sb.AppendLine("  当前频率  : " + Collector.FormatGhz(r.CpuCurrentMhz) + "（基频 " + Collector.FormatGhz(r.CpuBaseMhz) + "）");
-                sb.AppendLine("  温度      : " + (r.CpuTemperatureC >= 0.0
-                    ? r.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C（ACPI 温区）"
-                    : "不可用（该机型未暴露 CPU 温度传感器）"));
+                sb.AppendLine("  物理核心  : " + (r.PhysicalCores > 0 ? r.PhysicalCores + " 核 / " + r.Cores + " 线程" : r.Cores + " 线程"));
+                sb.AppendLine("  主板温区  : " + (r.ThermalZoneCelsius >= 0.0
+                    ? r.ThermalZoneCelsius.ToString("0.0", CultureInfo.InvariantCulture) + " °C（ACPI 温区，不是 CPU 温度）"
+                    : "不可用（本机未暴露温区传感器）"));
                 sb.AppendLine();
             }
             if (r.MemError == null)
@@ -684,7 +782,8 @@ namespace SysReport
                 sb.AppendLine("    \"cores_logical\": " + Int(r.Cores) + ",");
                 sb.AppendLine("    \"base_mhz\": " + Int(r.CpuBaseMhz) + ",");
                 sb.AppendLine("    \"current_mhz\": " + Int(r.CpuCurrentMhz) + ",");
-                sb.AppendLine("    \"temperature_celsius\": " + Num(r.CpuTemperatureC));
+                sb.AppendLine("    \"physical_cores\": " + Int(r.PhysicalCores) + ",");
+                sb.AppendLine("    \"thermal_zone_celsius\": " + Num(r.ThermalZoneCelsius));
                 sb.AppendLine("  },");
             }
             else
@@ -874,7 +973,7 @@ namespace SysReport
         private const int BasePadX = 20;
         private const int BaseRingSize = 118;
         private const int BaseRingGap = 14;
-        private const int InfoRows = 6;
+        private const int InfoRows = 7;
 
         private readonly int _sampleMilliseconds;
         private float _scale;
@@ -1217,16 +1316,19 @@ namespace SysReport
                 SetRingCaption(_diskRings[i], r.Disks[i].Drive.TrimEnd('\\'));
 
             string[] keys = {
-                "操作系统", "系统版本", "CPU 型号", "架构", "CPU 频率", "CPU 温度",
-                "主机名", "运行时长", "电源状态", "电池容量", "生成时间", "运行时" };
+                "操作系统", "系统版本", "CPU 型号", "架构", "CPU 频率", "CPU 核心",
+                "主机名", "运行时长", "电源状态", "电池容量", "主板温区", "运行时",
+                "生成时间", "" };
             string[] values = {
                 r.Os, r.OsVersion, r.Processor, r.Arch,
                 Collector.FormatGhz(r.CpuCurrentMhz) + " / 基频 " + Collector.FormatGhz(r.CpuBaseMhz),
-                r.CpuTemperatureC >= 0.0
-                    ? r.CpuTemperatureC.ToString("0.0", CultureInfo.InvariantCulture) + " °C（ACPI 温区）"
-                    : "不可用（无传感器）",
+                r.PhysicalCores > 0 ? r.PhysicalCores + " 核 / " + r.Cores + " 线程" : r.Cores + " 线程",
                 r.Hostname, r.UptimeText, r.BatteryStatus,
-                r.BatteryPercent >= 0 ? r.BatteryPercent + "%" : "--", r.GeneratedAt, r.Runtime };
+                r.BatteryPercent >= 0 ? r.BatteryPercent + "%" : "--",
+                r.ThermalZoneCelsius >= 0.0
+                    ? r.ThermalZoneCelsius.ToString("0.0", CultureInfo.InvariantCulture) + " °C（非 CPU）"
+                    : "--",
+                r.Runtime, r.GeneratedAt, "" };
             for (int i = 0; i < _infoKeys.Length; i++)
             {
                 _infoKeys[i].Text = keys[i];
@@ -1378,6 +1480,7 @@ namespace SysReport
             int sampleMilliseconds = 600;
             float forcedScale = 0f;
             int stressCount = 0;
+            int tempCheckSeconds = 0;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -1402,11 +1505,24 @@ namespace SysReport
                     if (int.TryParse(args[++i], NumberStyles.Integer, CultureInfo.InvariantCulture, out parsedStress))
                         stressCount = Math.Max(0, Math.Min(5000, parsedStress));
                 }
+                else if (arg == "--temp-check")
+                {
+                    tempCheckSeconds = 20;
+                    if (i + 1 < args.Length)
+                    {
+                        int parsedSeconds;
+                        if (int.TryParse(args[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out parsedSeconds))
+                        {
+                            tempCheckSeconds = Math.Max(5, Math.Min(120, parsedSeconds));
+                            i++;
+                        }
+                    }
+                }
                 else if (arg == "--out" && i + 1 < args.Length) outputFile = args[++i];
                 else if (arg == "--shot" && i + 1 < args.Length) shotFile = args[++i];
                 else if (arg == "--help" || arg == "-h" || arg == "/?")
                 {
-                    WriteOutput("用法:\n  SysReport.exe                打开图形界面\n  SysReport.exe --text         输出文本体检报告\n  SysReport.exe --json         输出 JSON\n  SysReport.exe --json --out 文件.json\n  SysReport.exe --sample 1.5   自定义 CPU 采样秒数（默认 0.6）\n  SysReport.exe --shot 图.png   离屏渲染一张界面截图（调试用）\n  SysReport.exe --scale 1.5    强制界面缩放倍数（配合 --shot 调试）\n  SysReport.exe --stress 200   连续刷新 200 轮并输出内存/GDI/句柄变化（查泄漏用）\n", null);
+                    WriteOutput("用法:\n  SysReport.exe                打开图形界面\n  SysReport.exe --text         输出文本体检报告\n  SysReport.exe --json         输出 JSON\n  SysReport.exe --json --out 文件.json\n  SysReport.exe --sample 1.5   自定义 CPU 采样秒数（默认 0.6）\n  SysReport.exe --shot 图.png   离屏渲染一张界面截图（调试用）\n  SysReport.exe --scale 1.5    强制界面缩放倍数（配合 --shot 调试）\n  SysReport.exe --stress 200   连续刷新 200 轮并输出内存/GDI/句柄变化（查泄漏用）\n  SysReport.exe --temp-check   空闲/满载对比温度，判断温区是否真的跟 CPU 相关\n", null);
                     return;
                 }
             }
@@ -1431,6 +1547,12 @@ namespace SysReport
                 }
                 preview.Close();
                 preview.Dispose();
+                return;
+            }
+
+            if (tempCheckSeconds > 0)
+            {
+                WriteOutput(Collector.TemperatureCheck(tempCheckSeconds), outputFile);
                 return;
             }
 
