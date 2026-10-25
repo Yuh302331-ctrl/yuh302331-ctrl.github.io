@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-10-25T17:11:04.319Z",
+  "user": {
+    "login": "Yuh302331-ctrl",
+    "public_repos": 3,
+    "followers": 0,
+    "created_at": "2026-09-06T08:37:27Z"
+  },
+  "repos": [
+    {
+      "name": "yuh302331-ctrl.github.io",
+      "description": "Personal homepage powered by GitHub Pages",
+      "language": "HTML",
+      "html_url": "https://github.com/Yuh302331-ctrl/yuh302331-ctrl.github.io",
+      "stargazers_count": 0,
+      "pushed_at": "2026-10-11T09:17:59Z",
+      "archived": false,
+      "fork": false
+    },
+    {
+      "name": "matrix-rain",
+      "description": "绿色矩阵雨终端动画",
+      "language": "PowerShell",
+      "html_url": "https://github.com/Yuh302331-ctrl/matrix-rain",
+      "stargazers_count": 0,
+      "pushed_at": "2026-10-11T09:17:57Z",
+      "archived": false,
+      "fork": false
+    },
+    {
+      "name": "sysfetch",
+      "description": "A zero-dependency neofetch-style system info tool for Windows, written in pure PowerShell.",
+      "language": "PowerShell",
+      "html_url": "https://github.com/Yuh302331-ctrl/sysfetch",
+      "stargazers_count": 0,
+      "pushed_at": "2026-10-11T09:14:42Z",
+      "archived": false,
+      "fork": false
+    }
+  ]
+}
