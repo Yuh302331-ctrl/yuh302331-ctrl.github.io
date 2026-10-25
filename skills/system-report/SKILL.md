@@ -120,7 +120,7 @@ make-icon.exe app.ico
 build.cmd
 ```
 
-构建使用 Windows 自带的 `csc.exe`（.NET Framework 4.x），无需安装任何 SDK。`build.cmd` 会带上 `app.ico`（图标）和 `app.manifest`（DPI 感知），两者必须与 `SysReport.cs` 放在同一目录。改完记得再复制一份为 `系统体检.exe`。
+构建使用 Windows 自带的 `csc.exe`（.NET Framework 4.x），无需安装任何 SDK。`build.cmd` 会带上 `app.ico`（图标）和 `app.manifest`（DPI 感知），并在编译成功后自动同步 `SysReport.exe` 与 `系统体检.exe`，避免两个文件版本漂移。
 
 ## 命令行脚本
 

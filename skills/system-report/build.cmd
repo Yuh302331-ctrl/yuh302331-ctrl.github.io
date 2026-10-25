@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal
 set "CSC=%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if not exist "%CSC%" set "CSC=%WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe"
@@ -17,8 +18,13 @@ echo Building SysReport.exe ...
 if errorlevel 1 (
   echo.
   echo BUILD FAILED
+  if /I "%CI%"=="true" exit /b 1
+  pause
+  exit /b 1
 ) else (
+  copy /Y "%~dp0SysReport.exe" "%~dp0系统体检.exe" >nul
   echo.
-  echo BUILD OK -^> %~dp0SysReport.exe
+  echo BUILD OK -^> %~dp0SysReport.exe and 系统体检.exe
 )
+if /I "%CI%"=="true" exit /b 0
 pause

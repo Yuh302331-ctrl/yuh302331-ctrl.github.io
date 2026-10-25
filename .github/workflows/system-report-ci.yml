@@ -1,0 +1,44 @@
+name: system-report CI
+
+on:
+  push:
+    paths:
+      - "skills/system-report/**"
+      - ".github/workflows/system-report-ci.yml"
+  pull_request:
+    paths:
+      - "skills/system-report/**"
+      - ".github/workflows/system-report-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build desktop app
+        shell: cmd
+        env:
+          CI: "true"
+        run: skills\system-report\build.cmd
+
+      - name: Verify binaries and Python syntax
+        shell: pwsh
+        run: |
+          $a = (Get-FileHash 'skills/system-report/SysReport.exe' -Algorithm SHA256).Hash
+          $b = (Get-FileHash 'skills/system-report/系统体检.exe' -Algorithm SHA256).Hash
+          if ($a -ne $b) { throw 'Desktop app binaries differ.' }
+          python -m py_compile 'skills/system-report/scripts/system_report.py'
+
+      - name: Smoke test JSON output
+        shell: pwsh
+        run: |
+          $json = & '.\skills\system-report\系统体检.exe' --json --sample 0.1 | Out-String
+          $data = $json | ConvertFrom-Json
+          if (-not $data.system -or -not $data.memory -or -not $data.uptime) {
+            throw 'system-report JSON smoke test failed.'
+          }

@@ -22,8 +22,6 @@
 <meta name="theme-color" content="#04070a">
 <link rel="canonical" href="https://yuh302331-ctrl.github.io/">
 <link rel="me" href="https://github.com/Yuh302331-ctrl">
-<link rel="preconnect" href="https://api.github.com" crossorigin>
-<link rel="dns-prefetch" href="https://api.github.com">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23050a08'/%3E%3Ctext x='32' y='45' font-size='38' font-family='monospace' font-weight='bold' fill='%2339ff14' text-anchor='middle'%3EY%3C/text%3E%3C/svg%3E">
 <style>
 :root{
@@ -336,7 +334,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     <div class="stat reveal"><b id="s-repos">—</b><span>公开仓库</span></div>
     <div class="stat reveal" style="--d:90ms"><b id="s-stars">—</b><span>获得 Star</span></div>
     <div class="stat reveal" style="--d:180ms"><b id="s-followers">—</b><span>关注者</span></div>
-    <div class="stat reveal" style="--d:270ms"><b id="s-days">—</b><span>折腾天数</span></div>
+    <div class="stat reveal" style="--d:270ms"><b id="s-days">—</b><span>GitHub 天数</span></div>
     <p class="stat-tip" id="statTip" hidden>GitHub 数据暂时没拉到（可能被限流或断网）· 刷新一下即可恢复</p>
   </section>
 
@@ -635,25 +633,7 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     requestAnimationFrame(step);
   };
   var USER = 'Yuh302331-ctrl';
-  var CACHE_KEY = 'gh-cache-v1';
-  var CACHE_TTL = 5 * 60 * 1000;
-
-  var readCache = function (key) {
-    try {
-      var raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return null;
-      var hit = (JSON.parse(raw) || {})[key];
-      if (!hit || Date.now() - hit.t > CACHE_TTL) return null;
-      return hit.d;
-    } catch (e) { return null; }
-  };
-  var writeCache = function (key, data) {
-    try {
-      var box = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') || {};
-      box[key] = { t: Date.now(), d: data };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(box));
-    } catch (e) {}
-  };
+  var DATA_URL = 'data/github.json';
   var fetchJSON = function (url) {
     var ctl = ('AbortController' in window) ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
@@ -669,21 +649,12 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
     if (tip) tip.hidden = false;
   };
   var paintUser = function (u) {
-    if (!u || u.message) { showTip('statTip'); return; }
+    if (!u) { showTip('statTip'); return; }
     countUp(document.getElementById('s-repos'), u.public_repos || 0);
     countUp(document.getElementById('s-followers'), u.followers || 0);
     var d = Math.max(1, Math.round((Date.now() - new Date(u.created_at)) / 86400000));
     countUp(document.getElementById('s-days'), d);
   };
-
-  var cachedUser = readCache('user');
-  if (cachedUser) {
-    paintUser(cachedUser);
-  } else {
-    fetchJSON('https://api.github.com/users/' + USER)
-      .then(function (u) { writeCache('user', u); paintUser(u); })
-      .catch(function () { paintUser(null); });
-  }
 
   /* ---------- 项目卡片自动生成 ---------- */
   var ICONS = { PowerShell: '⚡', JavaScript: '🟨', HTML: '🌐', CSS: '🎨', Python: '🐍', TypeScript: '🔷' };
@@ -713,36 +684,81 @@ footer{position:relative;z-index:1;text-align:center;color:#4f7f60;font-size:12p
       }, { passive: true });
     });
   };
+  var safeGitHubUrl = function (value) {
+    try {
+      var url = new URL(value);
+      if (url.protocol === 'https:' && (url.hostname === 'github.com' || url.hostname.endsWith('.github.com'))) {
+        return url.href;
+      }
+    } catch (e) {}
+    return 'https://github.com/' + USER;
+  };
+  var createRepoCard = function (repo, index) {
+    var card = document.createElement('a');
+    card.className = 'card reveal in';
+    card.setAttribute('data-tilt', '');
+    card.style.setProperty('--d', (index * 70) + 'ms');
+    card.href = safeGitHubUrl(repo.html_url);
+    card.target = '_blank';
+    card.rel = 'noopener';
+
+    var top = document.createElement('div');
+    top.className = 'card-top';
+    var icon = document.createElement('span');
+    icon.className = 'card-ico';
+    icon.textContent = ICONS[repo.language] || (String(repo.name).indexOf('.github.io') > -1 ? '🏠' : '📦');
+    var name = document.createElement('span');
+    name.className = 'card-name';
+    name.textContent = String(repo.name || 'Unnamed');
+    top.appendChild(icon);
+    top.appendChild(name);
+
+    var desc = document.createElement('p');
+    desc.className = 'card-desc';
+    desc.textContent = String(repo.description || '暂时还没有描述。');
+
+    var meta = document.createElement('div');
+    meta.className = 'card-meta';
+    var lang = document.createElement('span');
+    lang.className = 'lang';
+    lang.textContent = String(repo.language || 'Code');
+    meta.appendChild(lang);
+    if (repo.stargazers_count) {
+      var star = document.createElement('span');
+      star.textContent = '★ ' + repo.stargazers_count;
+      meta.appendChild(star);
+    }
+    var link = document.createElement('span');
+    link.className = 'card-link';
+    link.textContent = '查看 →';
+    meta.appendChild(link);
+
+    card.appendChild(top);
+    card.appendChild(desc);
+    card.appendChild(meta);
+    return card;
+  };
   var paintRepos = function (rs) {
     if (!Array.isArray(rs) || !rs.length || !grid) return;
     var stars = rs.reduce(function (a, r) { return a + (r.stargazers_count || 0); }, 0);
     countUp(document.getElementById('s-stars'), stars);
     rs.sort(function (a, b) { return new Date(b.pushed_at) - new Date(a.pushed_at); });
-    grid.innerHTML = rs.slice(0, 6).map(function (r, i) {
-        var name = String(r.name).replace(/[<>&"]/g, '');
-        var desc = String(r.description || '暂时还没有描述。').replace(/[<>&"]/g, '');
-        var lang = String(r.language || 'Code').replace(/[<>&"]/g, '');
-        var icon = ICONS[r.language] || (r.name.indexOf('.github.io') > -1 ? '🏠' : '📦');
-        var star = r.stargazers_count ? '<span>★ ' + r.stargazers_count + '</span>' : '';
-        return '<a class="card reveal in" data-tilt style="--d:' + (i * 70) + 'ms"' +
-          ' href="' + r.html_url + '" target="_blank" rel="noopener">' +
-          '<div class="card-top"><span class="card-ico">' + icon + '</span>' +
-          '<span class="card-name">' + name + '</span></div>' +
-          '<p class="card-desc">' + desc + '</p>' +
-          '<div class="card-meta"><span class="lang">' + lang + '</span>' + star +
-          '<span class="card-link">查看 →</span></div></a>';
-    }).join('');
+    while (grid.firstChild) grid.removeChild(grid.firstChild);
+    rs.slice(0, 6).forEach(function (repo, index) {
+      grid.appendChild(createRepoCard(repo, index));
+    });
     bindTilt(grid);
   };
 
-  var cachedRepos = readCache('repos');
-  if (cachedRepos) {
-    paintRepos(cachedRepos);
-  } else {
-    fetchJSON('https://api.github.com/users/' + USER + '/repos?per_page=100&sort=pushed')
-      .then(function (rs) { writeCache('repos', rs); paintRepos(rs); })
-      .catch(function () { showTip('projTip'); });
-  }
+  fetchJSON(DATA_URL)
+    .then(function (data) {
+      paintUser(data && data.user);
+      paintRepos(data && data.repos);
+    })
+    .catch(function () {
+      showTip('statTip');
+      showTip('projTip');
+    });
   bindTilt(document);
 
   /* ---------- 终端演出 ---------- */
