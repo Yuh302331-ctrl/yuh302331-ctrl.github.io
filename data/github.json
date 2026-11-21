@@ -1,19 +1,39 @@
 {
-  "generated_at": "2026-11-21T07:17:32.755Z",
+  "generated_at": "2026-11-21T19:22:49.383Z",
   "user": {
     "login": "Yuh302331-ctrl",
-    "public_repos": 3,
+    "public_repos": 5,
     "followers": 0,
     "created_at": "2026-09-06T08:37:27Z"
   },
   "repos": [
+    {
+      "name": "redhand",
+      "description": "Catch file changes red-handed: a cross-agent change journal with AI-agent attribution, restore, and protect modes",
+      "language": "Python",
+      "html_url": "https://github.com/Yuh302331-ctrl/redhand",
+      "stargazers_count": 0,
+      "pushed_at": "2026-11-21T17:27:34Z",
+      "archived": false,
+      "fork": false
+    },
+    {
+      "name": "agenttrueup",
+      "description": "Trust, but reconcile - verify what your AI coding agent said against what your filesystem actually shows. Local, read-only, zero dependencies.",
+      "language": "Python",
+      "html_url": "https://github.com/Yuh302331-ctrl/agenttrueup",
+      "stargazers_count": 0,
+      "pushed_at": "2026-11-21T17:04:49Z",
+      "archived": false,
+      "fork": false
+    },
     {
       "name": "yuh302331-ctrl.github.io",
       "description": "Personal homepage powered by GitHub Pages",
       "language": "C#",
       "html_url": "https://github.com/Yuh302331-ctrl/yuh302331-ctrl.github.io",
       "stargazers_count": 0,
-      "pushed_at": "2026-11-20T20:27:42Z",
+      "pushed_at": "2026-11-21T07:17:33Z",
       "archived": false,
       "fork": false
     },
